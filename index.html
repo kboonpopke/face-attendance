@@ -13,9 +13,7 @@
   user-scalable=no"
 >
 
-<title>
-Face Attendance V1
-</title>
+<title>Face Attendance</title>
 
 
 <script
@@ -148,7 +146,6 @@ label {
 
 video {
   display: block;
-
   width: 100%;
 }
 
@@ -189,7 +186,6 @@ video {
 .distance {
   text-align: center;
   margin-top: 8px;
-
   color: #6b7280;
 }
 
@@ -199,12 +195,19 @@ video {
 
 #enrollPreview {
   width: 100%;
-  max-height: 350px;
+  max-height: 400px;
   object-fit: contain;
 
   border-radius: 12px;
 
   margin-top: 10px;
+}
+
+.debug {
+  font-size: 13px;
+  color: #6b7280;
+  margin-top: 8px;
+  text-align: center;
 }
 
 </style>
@@ -224,7 +227,7 @@ video {
     </h1>
 
     <div class="subtitle">
-      Face Recognition V1
+      Face Recognition V2
     </div>
 
   </div>
@@ -254,9 +257,9 @@ video {
   </div>
 
 
-  <!-- ========================
+  <!-- ======================
        SCANNER
-  ========================= -->
+  ======================= -->
 
   <div id="scannerPage">
 
@@ -282,7 +285,10 @@ video {
       <button
         id="startCameraBtn"
         class="primary"
-        style="width:100%; margin-top:12px;"
+        style="
+          width:100%;
+          margin-top:12px;
+        "
         onclick="startCamera()"
       >
         📷 เปิดกล้อง
@@ -292,7 +298,10 @@ video {
       <button
         id="stopCameraBtn"
         class="secondary hidden"
-        style="width:100%; margin-top:8px;"
+        style="
+          width:100%;
+          margin-top:8px;
+        "
         onclick="stopCamera()"
       >
         ปิดกล้อง
@@ -333,14 +342,13 @@ video {
 
     </div>
 
-
   </div>
 
 
 
-  <!-- ========================
+  <!-- ======================
        ENROLL
-  ========================= -->
+  ======================= -->
 
   <div
     id="enrollPage"
@@ -390,7 +398,10 @@ video {
 
       <button
         class="primary"
-        style="width:100%; margin-top:14px;"
+        style="
+          width:100%;
+          margin-top:14px;
+        "
         onclick="enrollFace()"
       >
         ลงทะเบียนใบหน้า
@@ -406,6 +417,12 @@ video {
       เลือกรูปใบหน้าที่เห็นหน้าชัด
     </div>
 
+
+    <div
+      id="debugInfo"
+      class="debug"
+    >
+    </div>
 
   </div>
 
@@ -423,22 +440,12 @@ CONFIG
 */
 
 const API_URL =
-  '1_yy0-hnHWay4yZFcvZZPipZ_3M5-Kr0wRC3m3uNpZ9A';
+  'https://script.google.com/macros/s/AKfycbyUVrkl0TpYRsKwOTlPCI584MBixzUT1nfrZH60C3CW_M173gkJzCYCGvwFBGZwyudQ/exec';
 
 
 const MODEL_URL =
   'https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@master/weights';
 
-
-/*
-  ยิ่งต่ำยิ่งเข้มงวด
-
-  0.45 = ค่อนข้างเข้ม
-  0.50 = กลาง
-  0.55 = ผ่อน
-
-  เริ่มทดลองที่ 0.50
-*/
 
 const MATCH_THRESHOLD =
   0.50;
@@ -475,13 +482,18 @@ let lastMatchedTime = 0;
 
 /*
 ========================================
-LOAD MODEL
+LOAD MODELS
 ========================================
 */
 
 async function loadModels() {
 
   setScanStatus(
+    'กำลังโหลด AI...',
+    'warning'
+  );
+
+  setEnrollStatus(
     'กำลังโหลด AI...',
     'warning'
   );
@@ -493,6 +505,12 @@ async function loadModels() {
 
       faceapi.nets
         .tinyFaceDetector
+        .loadFromUri(
+          MODEL_URL
+        ),
+
+      faceapi.nets
+        .ssdMobilenetv1
         .loadFromUri(
           MODEL_URL
         ),
@@ -512,7 +530,8 @@ async function loadModels() {
     ]);
 
 
-    modelsReady = true;
+    modelsReady =
+      true;
 
 
     await loadEmployees();
@@ -524,20 +543,40 @@ async function loadModels() {
     );
 
 
+    setEnrollStatus(
+      'AI พร้อมใช้งาน เลือกรูปได้เลย',
+      'success'
+    );
+
+
   } catch (error) {
 
-    console.error(error);
+    console.error(
+      'MODEL ERROR:',
+      error
+    );
+
+
+    modelsReady =
+      false;
 
 
     setScanStatus(
-      'โหลด AI ไม่สำเร็จ',
+      'โหลด AI ไม่สำเร็จ: ' +
+      error.message,
+      'error'
+    );
+
+
+    setEnrollStatus(
+      'โหลด AI ไม่สำเร็จ: ' +
+      error.message,
       'error'
     );
 
   }
 
 }
-
 
 
 /*
@@ -561,9 +600,7 @@ async function loadEmployees() {
       await response.json();
 
 
-    if (
-      !data.success
-    ) {
+    if (!data.success) {
       throw new Error(
         'โหลด Employees ไม่สำเร็จ'
       );
@@ -621,13 +658,14 @@ async function loadEmployees() {
 
     } else {
 
-      faceMatcher = null;
+      faceMatcher =
+        null;
 
     }
 
 
     console.log(
-      'Employees:',
+      'Employees loaded:',
       labeled.length
     );
 
@@ -635,13 +673,13 @@ async function loadEmployees() {
   } catch (error) {
 
     console.error(
+      'LOAD EMPLOYEE ERROR:',
       error
     );
 
   }
 
 }
-
 
 
 /*
@@ -697,7 +735,8 @@ async function startCamera() {
     await video.play();
 
 
-    scanning = true;
+    scanning =
+      true;
 
 
     document
@@ -732,6 +771,7 @@ async function startCamera() {
   } catch (error) {
 
     console.error(
+      'CAMERA ERROR:',
       error
     );
 
@@ -747,10 +787,10 @@ async function startCamera() {
 }
 
 
-
 function stopCamera() {
 
-  scanning = false;
+  scanning =
+    false;
 
 
   if (stream) {
@@ -769,7 +809,8 @@ function stopCamera() {
     null;
 
 
-  stream = null;
+  stream =
+    null;
 
 
   document
@@ -799,10 +840,9 @@ function stopCamera() {
 }
 
 
-
 /*
 ========================================
-FACE SCAN
+LIVE FACE SCAN
 ========================================
 */
 
@@ -827,7 +867,8 @@ async function scanLoop() {
   }
 
 
-  processing = true;
+  processing =
+    true;
 
 
   try {
@@ -844,7 +885,7 @@ async function scanLoop() {
               inputSize: 320,
 
               scoreThreshold:
-                0.5
+                0.45
 
             })
 
@@ -906,13 +947,15 @@ async function scanLoop() {
   } catch (error) {
 
     console.error(
+      'SCAN ERROR:',
       error
     );
 
   }
 
 
-  processing = false;
+  processing =
+    false;
 
 
   setTimeout(
@@ -921,7 +964,6 @@ async function scanLoop() {
   );
 
 }
-
 
 
 /*
@@ -981,10 +1023,6 @@ function handleMatchedFace(
   );
 
 
-  /*
-    client side debounce
-  */
-
   const now =
     Date.now();
 
@@ -994,8 +1032,8 @@ function handleMatchedFace(
       lastMatchedId &&
 
     now -
-      lastMatchedTime
-      < 10000
+      lastMatchedTime <
+      10000
   ) {
 
     return;
@@ -1005,6 +1043,7 @@ function handleMatchedFace(
 
   lastMatchedId =
     employeeId;
+
 
   lastMatchedTime =
     now;
@@ -1016,7 +1055,6 @@ function handleMatchedFace(
   );
 
 }
-
 
 
 /*
@@ -1083,11 +1121,10 @@ async function saveAttendance(
       ) {
 
         navigator.vibrate(
-          [100, 60, 100]
+          [100,60,100]
         );
 
       }
-
 
     } else if (
       data.duplicate
@@ -1097,7 +1134,6 @@ async function saveAttendance(
         data.message,
         'warning'
       );
-
 
     } else {
 
@@ -1113,6 +1149,7 @@ async function saveAttendance(
   } catch (error) {
 
     console.error(
+      'SAVE ERROR:',
       error
     );
 
@@ -1127,10 +1164,9 @@ async function saveAttendance(
 }
 
 
-
 /*
 ========================================
-ENROLL
+PREVIEW ENROLL IMAGE
 ========================================
 */
 
@@ -1150,9 +1186,10 @@ function previewEnrollImage() {
 
 
   const img =
-    document.getElementById(
-      'enrollPreview'
-    );
+    document
+      .getElementById(
+        'enrollPreview'
+      );
 
 
   img.src =
@@ -1161,42 +1198,84 @@ function previewEnrollImage() {
     );
 
 
-  img.classList.remove(
-    'hidden'
-  );
+  img.classList
+    .remove(
+      'hidden'
+    );
+
+
+  document
+    .getElementById(
+      'debugInfo'
+    )
+    .textContent =
+    file.name +
+    ' / ' +
+    Math.round(
+      file.size /
+      1024
+    ) +
+    ' KB';
 
 }
 
 
+/*
+========================================
+ENROLL FACE
+========================================
+*/
 
 async function enrollFace() {
 
   if (!modelsReady) {
+
     setEnrollStatus(
       'AI ยังโหลดไม่เสร็จ',
       'warning'
     );
+
     return;
   }
 
+
   const employeeId =
-    document.getElementById('employeeId')
-      .value.trim();
+    document
+      .getElementById(
+        'employeeId'
+      )
+      .value
+      .trim();
+
 
   const name =
-    document.getElementById('employeeName')
-      .value.trim();
+    document
+      .getElementById(
+        'employeeName'
+      )
+      .value
+      .trim();
+
 
   const file =
-    document.getElementById('faceFile')
+    document
+      .getElementById(
+        'faceFile'
+      )
       .files[0];
 
 
-  if (!employeeId || !name || !file) {
+  if (
+    !employeeId ||
+    !name ||
+    !file
+  ) {
+
     setEnrollStatus(
       'กรอกข้อมูลและเลือกรูปก่อน',
       'warning'
     );
+
     return;
   }
 
@@ -1209,61 +1288,87 @@ async function enrollFace() {
 
   try {
 
-    // =========================
-    // โหลดรูป
-    // =========================
+    /*
+    ============================
+    LOAD IMAGE
+    ============================
+    */
 
     const img =
-      await faceapi.bufferToImage(file);
+      await faceapi
+        .bufferToImage(
+          file
+        );
 
 
     console.log(
-      'Original:',
+      'Original size:',
       img.width,
       img.height
     );
 
 
-    // =========================
-    // Resize รูปก่อน Detect
-    // =========================
+    /*
+    ============================
+    RESIZE IMAGE
+    ============================
+    */
 
-    const MAX_WIDTH = 800;
-
-    let width = img.width;
-    let height = img.height;
+    const MAX_WIDTH =
+      1000;
 
 
-    if (width > MAX_WIDTH) {
+    let width =
+      img.width;
+
+
+    let height =
+      img.height;
+
+
+    if (
+      width >
+      MAX_WIDTH
+    ) {
 
       const ratio =
-        MAX_WIDTH / width;
+        MAX_WIDTH /
+        width;
 
-      width = MAX_WIDTH;
+
+      width =
+        MAX_WIDTH;
+
 
       height =
         Math.round(
-          height * ratio
+          height *
+          ratio
         );
+
     }
 
 
     const canvas =
-      document.createElement(
-        'canvas'
-      );
+      document
+        .createElement(
+          'canvas'
+        );
+
 
     canvas.width =
       width;
+
 
     canvas.height =
       height;
 
 
     const ctx =
-      canvas.getContext(
-        '2d'
-      );
+      canvas
+        .getContext(
+          '2d'
+        );
 
 
     ctx.drawImage(
@@ -1275,15 +1380,32 @@ async function enrollFace() {
     );
 
 
+    document
+      .getElementById(
+        'debugInfo'
+      )
+      .textContent =
+      'Image: ' +
+      img.width +
+      'x' +
+      img.height +
+      ' → ' +
+      width +
+      'x' +
+      height;
+
+
     setEnrollStatus(
       'กำลังค้นหาใบหน้า...',
       'warning'
     );
 
 
-    // =========================
-    // FACE DETECTION
-    // =========================
+    /*
+    ============================
+    SSD FACE DETECTOR
+    ============================
+    */
 
     const detection =
       await faceapi
@@ -1292,20 +1414,23 @@ async function enrollFace() {
           canvas,
 
           new faceapi
-            .TinyFaceDetectorOptions({
+            .SsdMobilenetv1Options({
 
-              inputSize: 608,
-
-              scoreThreshold: 0.25
+              minConfidence:
+                0.35
 
             })
 
         )
-
         .withFaceLandmarks()
-
         .withFaceDescriptor();
 
+
+    /*
+    ============================
+    NOT FOUND
+    ============================
+    */
 
     if (!detection) {
 
@@ -1319,19 +1444,30 @@ async function enrollFace() {
         'error'
       );
 
+
+      document
+        .getElementById(
+          'debugInfo'
+        )
+        .textContent +=
+        ' / SSD: NOT FOUND';
+
+
       return;
     }
 
 
+    /*
+    ============================
+    FACE FOUND
+    ============================
+    */
+
     console.log(
-      'FACE FOUND',
+      'FACE FOUND:',
       detection
     );
 
-
-    // =========================
-    // Descriptor
-    // =========================
 
     const descriptor =
       Array.from(
@@ -1340,9 +1476,18 @@ async function enrollFace() {
 
 
     console.log(
-      'Descriptor length:',
+      'Descriptor:',
       descriptor.length
     );
+
+
+    document
+      .getElementById(
+        'debugInfo'
+      )
+      .textContent +=
+      ' / FACE FOUND / Descriptor: ' +
+      descriptor.length;
 
 
     setEnrollStatus(
@@ -1351,18 +1496,19 @@ async function enrollFace() {
     );
 
 
-    // =========================
-    // SEND APPS SCRIPT
-    // =========================
+    /*
+    ============================
+    SEND TO APPS SCRIPT
+    ============================
+    */
 
     const response =
       await fetch(
-
         API_URL,
-
         {
 
-          method: 'POST',
+          method:
+            'POST',
 
           body:
             JSON.stringify({
@@ -1382,7 +1528,6 @@ async function enrollFace() {
             })
 
         }
-
       );
 
 
@@ -1390,7 +1535,9 @@ async function enrollFace() {
       await response.json();
 
 
-    if (!data.success) {
+    if (
+      !data.success
+    ) {
 
       throw new Error(
         data.message ||
@@ -1411,7 +1558,11 @@ async function enrollFace() {
     );
 
 
-    // Reload Employees
+    /*
+    ============================
+    RELOAD EMPLOYEE DATABASE
+    ============================
+    */
 
     await loadEmployees();
 
@@ -1419,6 +1570,7 @@ async function enrollFace() {
   } catch (error) {
 
     console.error(
+      'ENROLL ERROR:',
       error
     );
 
@@ -1435,7 +1587,6 @@ async function enrollFace() {
   }
 
 }
-
 
 
 /*
@@ -1468,7 +1619,6 @@ function showScanner() {
 }
 
 
-
 function showEnroll() {
 
   stopCamera();
@@ -1496,6 +1646,11 @@ function showEnroll() {
 }
 
 
+/*
+========================================
+STATUS
+========================================
+*/
 
 function setScanStatus(
   text,
@@ -1503,9 +1658,10 @@ function setScanStatus(
 ) {
 
   const el =
-    document.getElementById(
-      'scanStatus'
-    );
+    document
+      .getElementById(
+        'scanStatus'
+      );
 
 
   el.textContent =
@@ -1518,14 +1674,14 @@ function setScanStatus(
 
   if (type) {
 
-    el.classList.add(
-      type
-    );
+    el.classList
+      .add(
+        type
+      );
 
   }
 
 }
-
 
 
 function setEnrollStatus(
@@ -1534,9 +1690,10 @@ function setEnrollStatus(
 ) {
 
   const el =
-    document.getElementById(
-      'enrollStatus'
-    );
+    document
+      .getElementById(
+        'enrollStatus'
+      );
 
 
   el.textContent =
@@ -1549,15 +1706,21 @@ function setEnrollStatus(
 
   if (type) {
 
-    el.classList.add(
-      type
-    );
+    el.classList
+      .add(
+        type
+      );
 
   }
 
 }
 
 
+/*
+========================================
+CLEAR RESULT
+========================================
+*/
 
 function clearResult() {
 
@@ -1585,7 +1748,6 @@ function clearResult() {
     '';
 
 }
-
 
 
 /*
