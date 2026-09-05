@@ -1172,107 +1172,166 @@ function previewEnrollImage() {
 async function enrollFace() {
 
   if (!modelsReady) {
-
     setEnrollStatus(
       'AI ยังโหลดไม่เสร็จ',
       'warning'
     );
-
     return;
-
   }
 
-
   const employeeId =
-    document
-      .getElementById(
-        'employeeId'
-      )
-      .value
-      .trim();
-
+    document.getElementById('employeeId')
+      .value.trim();
 
   const name =
-    document
-      .getElementById(
-        'employeeName'
-      )
-      .value
-      .trim();
-
+    document.getElementById('employeeName')
+      .value.trim();
 
   const file =
-    document
-      .getElementById(
-        'faceFile'
-      )
+    document.getElementById('faceFile')
       .files[0];
 
 
-  if (
-    !employeeId ||
-    !name ||
-    !file
-  ) {
-
+  if (!employeeId || !name || !file) {
     setEnrollStatus(
       'กรอกข้อมูลและเลือกรูปก่อน',
       'warning'
     );
-
     return;
-
   }
 
 
   setEnrollStatus(
-    'กำลังวิเคราะห์ใบหน้า...',
+    'กำลังเตรียมรูป...',
     'warning'
   );
 
 
   try {
 
-    const img =
-      await faceapi
-        .bufferToImage(
-          file
-        );
+    // =========================
+    // โหลดรูป
+    // =========================
 
+    const img =
+      await faceapi.bufferToImage(file);
+
+
+    console.log(
+      'Original:',
+      img.width,
+      img.height
+    );
+
+
+    // =========================
+    // Resize รูปก่อน Detect
+    // =========================
+
+    const MAX_WIDTH = 800;
+
+    let width = img.width;
+    let height = img.height;
+
+
+    if (width > MAX_WIDTH) {
+
+      const ratio =
+        MAX_WIDTH / width;
+
+      width = MAX_WIDTH;
+
+      height =
+        Math.round(
+          height * ratio
+        );
+    }
+
+
+    const canvas =
+      document.createElement(
+        'canvas'
+      );
+
+    canvas.width =
+      width;
+
+    canvas.height =
+      height;
+
+
+    const ctx =
+      canvas.getContext(
+        '2d'
+      );
+
+
+    ctx.drawImage(
+      img,
+      0,
+      0,
+      width,
+      height
+    );
+
+
+    setEnrollStatus(
+      'กำลังค้นหาใบหน้า...',
+      'warning'
+    );
+
+
+    // =========================
+    // FACE DETECTION
+    // =========================
 
     const detection =
       await faceapi
         .detectSingleFace(
 
-          img,
+          canvas,
 
           new faceapi
             .TinyFaceDetectorOptions({
 
-              inputSize:
-                416,
+              inputSize: 608,
 
-              scoreThreshold:
-                0.5
+              scoreThreshold: 0.25
 
             })
 
         )
+
         .withFaceLandmarks()
+
         .withFaceDescriptor();
 
 
     if (!detection) {
 
+      console.log(
+        'FACE NOT FOUND'
+      );
+
+
       setEnrollStatus(
-        'ไม่พบใบหน้าในรูป',
+        'ไม่พบใบหน้า กรุณาลองรูปอื่น',
         'error'
       );
 
       return;
-
     }
 
+
+    console.log(
+      'FACE FOUND',
+      detection
+    );
+
+
+    // =========================
+    // Descriptor
+    // =========================
 
     const descriptor =
       Array.from(
@@ -1280,15 +1339,27 @@ async function enrollFace() {
       );
 
 
-    setEnrollStatus(
-      'กำลังบันทึก...',
-      'warning'
+    console.log(
+      'Descriptor length:',
+      descriptor.length
     );
 
 
+    setEnrollStatus(
+      '✓ พบใบหน้า กำลังบันทึก...',
+      'success'
+    );
+
+
+    // =========================
+    // SEND APPS SCRIPT
+    // =========================
+
     const response =
       await fetch(
+
         API_URL,
+
         {
 
           method: 'POST',
@@ -1311,6 +1382,7 @@ async function enrollFace() {
             })
 
         }
+
       );
 
 
@@ -1318,28 +1390,28 @@ async function enrollFace() {
       await response.json();
 
 
-    if (
-      !data.success
-    ) {
+    if (!data.success) {
 
       throw new Error(
-        data.message
+        data.message ||
+        'บันทึกไม่สำเร็จ'
       );
 
     }
 
 
     setEnrollStatus(
+
       '✓ ลงทะเบียน ' +
       name +
       ' สำเร็จ',
+
       'success'
+
     );
 
 
-    /*
-      Reload database
-    */
+    // Reload Employees
 
     await loadEmployees();
 
@@ -1352,9 +1424,12 @@ async function enrollFace() {
 
 
     setEnrollStatus(
+
       'ผิดพลาด: ' +
       error.message,
+
       'error'
+
     );
 
   }
