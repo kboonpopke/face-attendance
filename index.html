@@ -2,354 +2,958 @@
 <html lang="th">
 
 <head>
+  <meta charset="UTF-8">
 
-<meta charset="UTF-8">
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"
+  >
 
-<meta
-  name="viewport"
-  content="width=device-width,
-  initial-scale=1,
-  maximum-scale=1,
-  user-scalable=no"
->
+  <meta name="theme-color" content="#07111f">
 
-<title>Face Attendance</title>
+  <title>Face Attendance</title>
 
-<script
-  src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js">
-</script>
+  <script
+    src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js">
+  </script>
 
+  <style>
+    * {
+      box-sizing: border-box;
+    }
 
-<style>
+    :root {
+      --bg: #07111f;
+      --panel: rgba(15, 27, 46, .92);
+      --panel2: rgba(20, 36, 60, .82);
+      --line: rgba(255,255,255,.12);
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --success: #22c55e;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --accent: #38bdf8;
+    }
 
-* {
-  box-sizing: border-box;
-}
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      background:
+        radial-gradient(circle at top, #12315b 0%, #07111f 42%, #030712 100%);
+      color: var(--text);
+      font-family:
+        Inter,
+        system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif;
+    }
 
-body {
-  margin: 0;
-  background: #f3f4f6;
-  font-family: Arial, sans-serif;
-  color: #111827;
-}
+    body {
+      min-height: 100vh;
+    }
 
-.app {
-  max-width: 600px;
-  margin: auto;
-  padding: 16px;
-}
+    button,
+    input {
+      font: inherit;
+    }
 
-.card {
-  background: white;
-  border-radius: 18px;
-  padding: 18px;
-  margin-bottom: 14px;
+    button {
+      cursor: pointer;
+    }
 
-  box-shadow:
-    0 4px 15px
-    rgba(0,0,0,.08);
-}
+    .hidden {
+      display: none !important;
+    }
 
-h1 {
-  margin: 0;
-  font-size: 26px;
-}
+    .app {
+      width: 100%;
+      max-width: 520px;
+      margin: 0 auto;
+      padding:
+        max(18px, env(safe-area-inset-top))
+        16px
+        max(24px, env(safe-area-inset-bottom));
+    }
 
-.subtitle {
-  margin-top: 6px;
-  color: #6b7280;
-}
+    /* ==============================
+       HEADER
+    ============================== */
 
-.tabs {
-  display: flex;
-  gap: 8px;
-}
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 18px;
+    }
 
-.tabs button {
-  flex: 1;
-}
+    .brand-small {
+      color: var(--accent);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
 
-button {
-  border: none;
-  border-radius: 12px;
-  padding: 15px;
+    .title {
+      margin: 4px 0 0;
+      font-size: 25px;
+      font-weight: 800;
+      letter-spacing: -.7px;
+    }
 
-  font-size: 17px;
-  font-weight: bold;
+    .subtitle {
+      color: var(--muted);
+      font-size: 13px;
+      margin-top: 4px;
+    }
 
-  cursor: pointer;
-}
+    .admin-btn {
+      width: 48px;
+      height: 48px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: var(--panel2);
+      color: white;
+      font-size: 20px;
+      backdrop-filter: blur(15px);
+      box-shadow: 0 10px 30px rgba(0,0,0,.2);
+    }
 
-.primary {
-  background: #111827;
-  color: white;
-}
+    /* ==============================
+       CAMERA
+    ============================== */
 
-.secondary {
-  background: #e5e7eb;
-  color: #111827;
-}
+    .camera-card {
+      position: relative;
+      overflow: hidden;
 
-input {
-  width: 100%;
-  padding: 14px;
+      width: 100%;
 
-  margin-top: 8px;
-  margin-bottom: 10px;
+      /* สำคัญ: กล้องตั้งตรง */
+      aspect-ratio: 3 / 4;
 
-  border: 1px solid #d1d5db;
-  border-radius: 10px;
+      border-radius: 28px;
+      background: #000;
+      border: 1px solid rgba(255,255,255,.12);
 
-  font-size: 17px;
-}
+      box-shadow:
+        0 30px 70px rgba(0,0,0,.45),
+        0 0 0 1px rgba(56,189,248,.05);
+    }
 
-label {
-  font-size: 14px;
-  color: #6b7280;
-}
+    #video {
+      position: absolute;
+      inset: 0;
 
-.status {
-  padding: 15px;
-  border-radius: 12px;
-  text-align: center;
-  font-weight: bold;
+      width: 100%;
+      height: 100%;
 
-  background: #e5e7eb;
-}
+      /* สำคัญ: ไม่ยืด ไม่บีบ */
+      object-fit: cover;
 
-.success {
-  background: #dcfce7;
-  color: #166534;
-}
+      /* กล้องหน้าให้เหมือนกระจก */
+      transform: scaleX(-1);
 
-.warning {
-  background: #fef3c7;
-  color: #92400e;
-}
+      background: #000;
+    }
 
-.error {
-  background: #fee2e2;
-  color: #991b1b;
-}
+    .camera-shade {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
 
-.camera {
-  position: relative;
-  background: black;
-  overflow: hidden;
-  border-radius: 16px;
-}
+      background:
+        linear-gradient(
+          to bottom,
+          rgba(0,0,0,.30),
+          transparent 22%,
+          transparent 72%,
+          rgba(0,0,0,.55)
+        );
+    }
 
-video {
-  display: block;
-  width: 100%;
-}
+    /* ==============================
+       FACE FRAME
+    ============================== */
 
-.face-frame {
-  position: absolute;
+    .face-frame {
+      position: absolute;
 
-  left: 18%;
-  top: 12%;
+      left: 50%;
+      top: 45%;
 
-  width: 64%;
-  height: 75%;
+      /* กรอบแนวตั้ง */
+      width: 58%;
+      height: 66%;
 
-  border:
-    3px solid
-    rgba(255,255,255,.9);
+      transform: translate(-50%, -50%);
 
-  border-radius: 45%;
-  pointer-events: none;
-}
+      border: 2px solid rgba(255,255,255,.85);
+      border-radius: 48% 48% 45% 45%;
 
-.result-name {
-  font-size: 30px;
-  font-weight: bold;
-  text-align: center;
-}
+      box-shadow:
+        0 0 0 999px rgba(0,0,0,.12),
+        0 0 30px rgba(56,189,248,.15);
 
-.result-id {
-  margin-top: 5px;
-  text-align: center;
-  color: #6b7280;
-  font-size: 18px;
-}
+      pointer-events: none;
+    }
 
-.distance {
-  text-align: center;
-  margin-top: 12px;
-  color: #374151;
-  font-size: 17px;
-  line-height: 1.7;
-}
+    .face-frame::before {
+      content: "";
+      position: absolute;
+      inset: -2px;
 
-.hidden {
-  display: none;
-}
+      border-radius: inherit;
 
-#enrollPreview {
-  width: 100%;
-  max-height: 400px;
-  object-fit: contain;
-  border-radius: 12px;
-  margin-top: 10px;
-}
+      border:
+        1px solid
+        rgba(56,189,248,.55);
 
-.debug {
-  font-size: 13px;
-  color: #6b7280;
-  margin-top: 8px;
-  text-align: center;
-}
+      filter: drop-shadow(
+        0 0 10px
+        rgba(56,189,248,.6)
+      );
+    }
 
-.metric {
-  margin-top: 10px;
-  padding: 12px;
-  border-radius: 12px;
-  background: #f9fafb;
-}
+    /* ==============================
+       SCAN LINE
+    ============================== */
 
-.metric-row {
-  display: flex;
-  justify-content: space-between;
-  margin: 5px 0;
-}
+    .scan-line {
+      position: absolute;
 
-.metric-label {
-  color: #6b7280;
-}
+      left: 24%;
+      width: 52%;
 
-.metric-value {
-  font-weight: bold;
-}
+      height: 2px;
 
-</style>
+      top: 25%;
 
+      background:
+        linear-gradient(
+          90deg,
+          transparent,
+          rgba(56,189,248,.9),
+          white,
+          rgba(56,189,248,.9),
+          transparent
+        );
+
+      box-shadow:
+        0 0 12px rgba(56,189,248,.8);
+
+      animation:
+        scanMove 2.3s
+        ease-in-out
+        infinite alternate;
+
+      pointer-events: none;
+    }
+
+    @keyframes scanMove {
+      from {
+        top: 23%;
+        opacity: .5;
+      }
+
+      to {
+        top: 68%;
+        opacity: 1;
+      }
+    }
+
+    /* ==============================
+       HUD CORNERS
+    ============================== */
+
+    .corner {
+      position: absolute;
+      width: 34px;
+      height: 34px;
+      pointer-events: none;
+    }
+
+    .corner.tl {
+      top: 18px;
+      left: 18px;
+      border-top: 3px solid var(--accent);
+      border-left: 3px solid var(--accent);
+      border-radius: 10px 0 0 0;
+    }
+
+    .corner.tr {
+      top: 18px;
+      right: 18px;
+      border-top: 3px solid var(--accent);
+      border-right: 3px solid var(--accent);
+      border-radius: 0 10px 0 0;
+    }
+
+    .corner.bl {
+      bottom: 18px;
+      left: 18px;
+      border-bottom: 3px solid var(--accent);
+      border-left: 3px solid var(--accent);
+      border-radius: 0 0 0 10px;
+    }
+
+    .corner.br {
+      bottom: 18px;
+      right: 18px;
+      border-bottom: 3px solid var(--accent);
+      border-right: 3px solid var(--accent);
+      border-radius: 0 0 10px 0;
+    }
+
+    .camera-top {
+      position: absolute;
+      z-index: 5;
+      top: 18px;
+      left: 50%;
+      transform: translateX(-50%);
+
+      padding: 8px 13px;
+      border-radius: 999px;
+
+      color: white;
+      background: rgba(0,0,0,.42);
+      border: 1px solid rgba(255,255,255,.15);
+      backdrop-filter: blur(12px);
+
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .camera-guide {
+      position: absolute;
+      z-index: 5;
+
+      left: 20px;
+      right: 20px;
+      bottom: 25px;
+
+      text-align: center;
+
+      pointer-events: none;
+    }
+
+    .camera-guide-title {
+      font-size: 19px;
+      font-weight: 800;
+      text-shadow: 0 2px 8px #000;
+    }
+
+    .camera-guide-sub {
+      margin-top: 4px;
+      color: rgba(255,255,255,.72);
+      font-size: 12px;
+      text-shadow: 0 2px 8px #000;
+    }
+
+    /* ==============================
+       STATUS
+    ============================== */
+
+    .status-card {
+      margin-top: 14px;
+
+      padding: 15px 17px;
+
+      display: flex;
+      align-items: center;
+      gap: 12px;
+
+      border-radius: 18px;
+
+      background: var(--panel);
+      border: 1px solid var(--line);
+
+      backdrop-filter: blur(15px);
+
+      box-shadow:
+        0 15px 40px
+        rgba(0,0,0,.22);
+    }
+
+    .status-dot {
+      width: 12px;
+      height: 12px;
+
+      flex: 0 0 auto;
+
+      border-radius: 50%;
+
+      background: var(--muted);
+
+      box-shadow:
+        0 0 12px
+        currentColor;
+    }
+
+    .status-content {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .status-title {
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    .status-desc {
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 2px;
+    }
+
+    .status-card.success .status-dot {
+      background: var(--success);
+    }
+
+    .status-card.success .status-title {
+      color: #86efac;
+    }
+
+    .status-card.warning .status-dot {
+      background: var(--warning);
+    }
+
+    .status-card.warning .status-title {
+      color: #fde68a;
+    }
+
+    .status-card.error .status-dot {
+      background: var(--danger);
+    }
+
+    .status-card.error .status-title {
+      color: #fca5a5;
+    }
+
+    /* ==============================
+       RESULT
+    ============================== */
+
+    .result-card {
+      margin-top: 14px;
+      padding: 20px;
+
+      border-radius: 22px;
+
+      background:
+        linear-gradient(
+          145deg,
+          rgba(21, 38, 63, .95),
+          rgba(8, 20, 36, .95)
+        );
+
+      border: 1px solid var(--line);
+
+      box-shadow:
+        0 18px 45px
+        rgba(0,0,0,.25);
+    }
+
+    .result-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 15px;
+      align-items: flex-start;
+    }
+
+    .result-label {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.4px;
+      text-transform: uppercase;
+    }
+
+    .result-name {
+      margin-top: 5px;
+
+      font-size: 28px;
+      font-weight: 900;
+
+      letter-spacing: -.6px;
+    }
+
+    .result-id {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .match-badge {
+      padding: 7px 11px;
+
+      border-radius: 999px;
+
+      background:
+        rgba(148,163,184,.12);
+
+      color:
+        var(--muted);
+
+      border:
+        1px solid var(--line);
+
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .match-badge.ok {
+      color: #86efac;
+      background: rgba(34,197,94,.11);
+      border-color: rgba(34,197,94,.25);
+    }
+
+    .match-badge.no {
+      color: #fca5a5;
+      background: rgba(239,68,68,.1);
+      border-color: rgba(239,68,68,.25);
+    }
+
+    .metrics {
+      margin-top: 18px;
+
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .metric {
+      padding: 12px 7px;
+
+      border-radius: 15px;
+
+      text-align: center;
+
+      background:
+        rgba(255,255,255,.035);
+
+      border:
+        1px solid
+        rgba(255,255,255,.07);
+    }
+
+    .metric-name {
+      color: var(--muted);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: .7px;
+    }
+
+    .metric-value {
+      margin-top: 5px;
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    /* ==============================
+       BUTTONS
+    ============================== */
+
+    .btn {
+      width: 100%;
+      min-height: 50px;
+
+      border: 0;
+      border-radius: 16px;
+
+      font-weight: 800;
+
+      margin-top: 12px;
+    }
+
+    .btn-primary {
+      color: #001018;
+      background:
+        linear-gradient(
+          135deg,
+          #38bdf8,
+          #67e8f9
+        );
+
+      box-shadow:
+        0 10px 30px
+        rgba(56,189,248,.2);
+    }
+
+    .btn-secondary {
+      color: white;
+      background: var(--panel2);
+      border: 1px solid var(--line);
+    }
+
+    /* ==============================
+       ENROLL
+    ============================== */
+
+    .panel {
+      padding: 18px;
+
+      background:
+        var(--panel);
+
+      border:
+        1px solid
+        var(--line);
+
+      border-radius:
+        22px;
+
+      backdrop-filter:
+        blur(15px);
+    }
+
+    label {
+      display: block;
+      color: #cbd5e1;
+      font-size: 12px;
+      margin: 13px 0 7px;
+    }
+
+    input {
+      width: 100%;
+
+      border:
+        1px solid
+        rgba(255,255,255,.11);
+
+      border-radius:
+        14px;
+
+      padding:
+        14px;
+
+      outline: none;
+
+      background:
+        rgba(255,255,255,.055);
+
+      color:
+        white;
+    }
+
+    input:focus {
+      border-color:
+        rgba(56,189,248,.6);
+
+      box-shadow:
+        0 0 0 3px
+        rgba(56,189,248,.08);
+    }
+
+    input[type=file] {
+      color:
+        #cbd5e1;
+    }
+
+    .photo-block {
+      margin-top:
+        18px;
+
+      padding:
+        14px;
+
+      border-radius:
+        18px;
+
+      background:
+        rgba(255,255,255,.035);
+
+      border:
+        1px solid
+        rgba(255,255,255,.07);
+    }
+
+    .photo-title {
+      font-weight:
+        800;
+    }
+
+    .photo-help {
+      color:
+        var(--muted);
+
+      font-size:
+        12px;
+
+      margin-top:
+        3px;
+    }
+
+    .preview {
+      width:
+        100%;
+
+      max-height:
+        280px;
+
+      object-fit:
+        cover;
+
+      border-radius:
+        14px;
+
+      margin-top:
+        12px;
+    }
+
+    .photo-status {
+      color:
+        var(--muted);
+
+      margin-top:
+        8px;
+
+      font-size:
+        12px;
+    }
+
+    .enroll-status {
+      margin-top:
+        14px;
+
+      padding:
+        13px;
+
+      border-radius:
+        14px;
+
+      background:
+        rgba(255,255,255,.05);
+
+      color:
+        #cbd5e1;
+
+      font-size:
+        13px;
+
+      text-align:
+        center;
+    }
+
+  </style>
 </head>
-
 
 <body>
 
 <div class="app">
 
+  <!-- ==============================
+       HEADER
+  ============================== -->
 
-  <div class="card">
+  <div class="topbar">
 
-    <h1>
-      👤 Face Attendance
-    </h1>
+    <div>
 
-    <div class="subtitle">
-      Face Recognition Test
+      <div class="brand-small">
+        CJL · CNX
+      </div>
+
+      <div class="title">
+        Face Attendance
+      </div>
+
+      <div class="subtitle">
+        Smart biometric check-in
+      </div>
+
     </div>
+
+    <button
+      class="admin-btn"
+      onclick="showEnroll()"
+      title="ลงทะเบียนพนักงาน"
+    >
+      ⚙
+    </button>
 
   </div>
 
 
-  <div class="card">
-
-    <div class="tabs">
-
-      <button
-        class="primary"
-        onclick="showScanner()"
-      >
-        สแกนเข้างาน
-      </button>
-
-
-      <button
-        class="secondary"
-        onclick="showEnroll()"
-      >
-        ลงทะเบียน
-      </button>
-
-    </div>
-
-  </div>
-
-
-  <!-- =========================
+  <!-- ==============================
        SCANNER
-  ========================== -->
+  ============================== -->
 
   <div id="scannerPage">
 
+    <div class="camera-card">
 
-    <div class="card">
+      <video
+        id="video"
+        autoplay
+        muted
+        playsinline
+      ></video>
 
-      <div class="camera">
+      <div class="camera-shade"></div>
 
-        <video
-          id="video"
-          autoplay
-          muted
-          playsinline
-        ></video>
+      <div class="corner tl"></div>
+      <div class="corner tr"></div>
+      <div class="corner bl"></div>
+      <div class="corner br"></div>
 
-        <div
-          class="face-frame"
-        ></div>
+      <div class="camera-top">
+        ● FACE RECOGNITION ACTIVE
+      </div>
+
+      <div class="face-frame"></div>
+
+      <div
+        id="scanLine"
+        class="scan-line"
+      ></div>
+
+      <div class="camera-guide">
+
+        <div class="camera-guide-title">
+          มองตรงเข้ากล้อง
+        </div>
+
+        <div class="camera-guide-sub">
+          ให้ใบหน้าอยู่ภายในกรอบ
+        </div>
 
       </div>
 
-
-      <button
-        id="startCameraBtn"
-        class="primary"
-        style="
-          width:100%;
-          margin-top:12px;
-        "
-        onclick="startCamera()"
-      >
-        📷 เปิดกล้อง
-      </button>
-
-
-      <button
-        id="stopCameraBtn"
-        class="secondary hidden"
-        style="
-          width:100%;
-          margin-top:8px;
-        "
-        onclick="stopCamera()"
-      >
-        ปิดกล้อง
-      </button>
-
     </div>
 
+
+    <!-- FALLBACK BUTTON -->
+
+    <button
+      id="startCameraBtn"
+      class="btn btn-primary hidden"
+      onclick="startCamera()"
+    >
+      เปิดกล้อง
+    </button>
+
+
+    <!-- STATUS -->
 
     <div
-      id="scanStatus"
-      class="status"
+      id="statusCard"
+      class="status-card warning"
     >
-      กำลังโหลด AI...
+
+      <div class="status-dot"></div>
+
+      <div class="status-content">
+
+        <div
+          id="scanStatus"
+          class="status-title"
+        >
+          กำลังโหลด AI...
+        </div>
+
+        <div
+          id="scanStatusDesc"
+          class="status-desc"
+        >
+          กำลังเตรียมระบบจดจำใบหน้า
+        </div>
+
+      </div>
+
     </div>
 
 
-    <div class="card">
+    <!-- RESULT -->
 
-      <div
-        id="resultName"
-        class="result-name"
-      >
-        -
+    <div class="result-card">
+
+      <div class="result-top">
+
+        <div>
+
+          <div class="result-label">
+            IDENTIFIED PERSON
+          </div>
+
+          <div
+            id="resultName"
+            class="result-name"
+          >
+            -
+          </div>
+
+          <div
+            id="resultId"
+            class="result-id"
+          >
+            Employee ID : -
+          </div>
+
+        </div>
+
+        <div
+          id="matchBadge"
+          class="match-badge"
+        >
+          WAITING
+        </div>
+
       </div>
 
-      <div
-        id="resultId"
-        class="result-id"
-      >
-        -
-      </div>
 
-      <div
-        id="distanceResult"
-        class="distance"
-      >
+      <div class="metrics">
+
+        <div class="metric">
+
+          <div class="metric-name">
+            Distance
+          </div>
+
+          <div
+            id="metricDistance"
+            class="metric-value"
+          >
+            -
+          </div>
+
+        </div>
+
+        <div class="metric">
+
+          <div class="metric-name">
+            Threshold
+          </div>
+
+          <div
+            id="metricThreshold"
+            class="metric-value"
+          >
+            0.450000
+          </div>
+
+        </div>
+
+        <div class="metric">
+
+          <div class="metric-name">
+            Margin
+          </div>
+
+          <div
+            id="metricMargin"
+            class="metric-value"
+          >
+            -
+          </div>
+
+        </div>
+
       </div>
 
     </div>
@@ -357,18 +961,25 @@ video {
   </div>
 
 
-
-  <!-- =========================
+  <!-- ==============================
        ENROLL
-  ========================== -->
+  ============================== -->
 
   <div
     id="enrollPage"
     class="hidden"
   >
 
+    <div class="panel">
 
-    <div class="card">
+      <button
+        class="btn btn-secondary"
+        style="margin-top:0"
+        onclick="showScanner()"
+      >
+        ← กลับหน้าสแกน
+      </button>
+
 
       <label>
         Employee ID
@@ -381,75 +992,160 @@ video {
 
 
       <label>
-        ชื่อ
+        ชื่อพนักงาน
       </label>
 
       <input
         id="employeeName"
-        placeholder="ชื่อพนักงาน"
+        placeholder="ชื่อ - นามสกุล"
       >
 
 
-      <label>
-        รูปใบหน้า
-      </label>
+      <!-- FRONT -->
 
-      <input
-        id="faceFile"
-        type="file"
-        accept="image/*"
-        onchange="previewEnrollImage()"
-      >
+      <div class="photo-block">
+
+        <div class="photo-title">
+          01 · หน้าตรง
+        </div>
+
+        <div class="photo-help">
+          มองตรง ไม่ก้ม ไม่เงย
+        </div>
+
+        <input
+          id="frontFile"
+          type="file"
+          accept="image/*"
+          capture="user"
+          onchange="previewImage(
+            'frontFile',
+            'frontPreview',
+            'frontStatus'
+          )"
+        >
+
+        <img
+          id="frontPreview"
+          class="preview hidden"
+        >
+
+        <div
+          id="frontStatus"
+          class="photo-status"
+        >
+          ยังไม่ได้เลือกรูป
+        </div>
+
+      </div>
 
 
-      <img
-        id="enrollPreview"
-        class="hidden"
-      >
+      <!-- LEFT -->
+
+      <div class="photo-block">
+
+        <div class="photo-title">
+          02 · หันซ้าย
+        </div>
+
+        <div class="photo-help">
+          ประมาณ 20–30 องศา
+        </div>
+
+        <input
+          id="leftFile"
+          type="file"
+          accept="image/*"
+          capture="user"
+          onchange="previewImage(
+            'leftFile',
+            'leftPreview',
+            'leftStatus'
+          )"
+        >
+
+        <img
+          id="leftPreview"
+          class="preview hidden"
+        >
+
+        <div
+          id="leftStatus"
+          class="photo-status"
+        >
+          ยังไม่ได้เลือกรูป
+        </div>
+
+      </div>
+
+
+      <!-- RIGHT -->
+
+      <div class="photo-block">
+
+        <div class="photo-title">
+          03 · หันขวา
+        </div>
+
+        <div class="photo-help">
+          ประมาณ 20–30 องศา
+        </div>
+
+        <input
+          id="rightFile"
+          type="file"
+          accept="image/*"
+          capture="user"
+          onchange="previewImage(
+            'rightFile',
+            'rightPreview',
+            'rightStatus'
+          )"
+        >
+
+        <img
+          id="rightPreview"
+          class="preview hidden"
+        >
+
+        <div
+          id="rightStatus"
+          class="photo-status"
+        >
+          ยังไม่ได้เลือกรูป
+        </div>
+
+      </div>
 
 
       <button
-        class="primary"
-        style="
-          width:100%;
-          margin-top:14px;
-        "
+        id="enrollBtn"
+        class="btn btn-primary"
         onclick="enrollFace()"
       >
-        ลงทะเบียนใบหน้า
+        ลงทะเบียนใบหน้า 3 มุม
       </button>
 
-    </div>
 
+      <div
+        id="enrollStatus"
+        class="enroll-status"
+      >
+        กำลังโหลด AI...
+      </div>
 
-    <div
-      id="enrollStatus"
-      class="status"
-    >
-      กำลังโหลด AI...
-    </div>
-
-
-    <div
-      id="debugInfo"
-      class="debug"
-    >
     </div>
 
   </div>
 
-
 </div>
-
 
 
 <script>
 
-/*
-========================================
-CONFIG
-========================================
-*/
+/* ==================================================
+   CONFIG
+================================================== */
 
 const API_URL =
   'https://script.google.com/macros/s/AKfycbyUVrkl0TpYRsKwOTlPCI584MBixzUT1nfrZH60C3CW_M173gkJzCYCGvwFBGZwyudQ/exec';
@@ -459,34 +1155,20 @@ const MODEL_URL =
   'https://cdn.jsdelivr.net/gh/cgarciagl/face-api.js@0.22.2/weights';
 
 
-/*
-  ยิ่งต่ำ = ยิ่งเข้มงวด
-
-  0.50 เริ่มต้นสำหรับทดสอบ
-*/
-
 const MATCH_THRESHOLD =
-  0.30;
+  0.45;
 
 
-/*
-========================================
-GLOBAL
-========================================
-*/
+/* ==================================================
+   GLOBAL
+================================================== */
 
 const video =
-  document.getElementById(
-    'video'
-  );
+  document.getElementById('video');
 
 
 let stream =
   null;
-
-
-let modelsReady =
-  false;
 
 
 let scanning =
@@ -494,6 +1176,10 @@ let scanning =
 
 
 let processing =
+  false;
+
+
+let modelsReady =
   false;
 
 
@@ -513,25 +1199,17 @@ let lastMatchedTime =
   0;
 
 
-/*
-========================================
-LOAD MODELS
-========================================
-*/
+/* ==================================================
+   LOAD MODELS
+================================================== */
 
 async function loadModels() {
 
-  setScanStatus(
+  updateStatus(
     'กำลังโหลด AI...',
+    'กำลังเตรียมระบบจดจำใบหน้า',
     'warning'
   );
-
-
-  setEnrollStatus(
-    'กำลังโหลด AI...',
-    'warning'
-  );
-
 
   try {
 
@@ -539,27 +1217,19 @@ async function loadModels() {
 
       faceapi.nets
         .tinyFaceDetector
-        .loadFromUri(
-          MODEL_URL
-        ),
+        .loadFromUri(MODEL_URL),
 
       faceapi.nets
         .ssdMobilenetv1
-        .loadFromUri(
-          MODEL_URL
-        ),
+        .loadFromUri(MODEL_URL),
 
       faceapi.nets
         .faceLandmark68Net
-        .loadFromUri(
-          MODEL_URL
-        ),
+        .loadFromUri(MODEL_URL),
 
       faceapi.nets
         .faceRecognitionNet
-        .loadFromUri(
-          MODEL_URL
-        )
+        .loadFromUri(MODEL_URL)
 
     ]);
 
@@ -571,39 +1241,46 @@ async function loadModels() {
     await loadEmployees();
 
 
-    setScanStatus(
+    document
+      .getElementById('enrollStatus')
+      .textContent =
+      'AI พร้อมใช้งาน';
+
+
+    updateStatus(
       'AI พร้อมใช้งาน',
+      'กำลังเปิดกล้องหน้า...',
       'success'
     );
 
 
-    setEnrollStatus(
-      'AI พร้อมใช้งาน เลือกรูปได้เลย',
-      'success'
-    );
+    /*
+    ลองเปิดกล้องอัตโนมัติ
+    */
 
+    try {
+
+      await startCamera();
+
+    } catch (error) {
+
+      document
+        .getElementById('startCameraBtn')
+        .classList
+        .remove('hidden');
+
+    }
 
   } catch (error) {
 
     console.error(
-      'MODEL ERROR:',
+      'MODEL ERROR',
       error
     );
 
 
-    modelsReady =
-      false;
-
-
-    setScanStatus(
-      'โหลด AI ไม่สำเร็จ: ' +
-      error.message,
-      'error'
-    );
-
-
-    setEnrollStatus(
-      'โหลด AI ไม่สำเร็จ: ' +
+    updateStatus(
+      'โหลด AI ไม่สำเร็จ',
       error.message,
       'error'
     );
@@ -613,73 +1290,99 @@ async function loadModels() {
 }
 
 
-/*
-========================================
-LOAD EMPLOYEES
-========================================
-*/
+/* ==================================================
+   EMPLOYEES
+================================================== */
 
 async function loadEmployees() {
 
-  try {
+  const response =
+    await fetch(
+      API_URL +
+      '?action=employees'
+    );
 
-    const response =
-      await fetch(
-        API_URL +
-        '?action=employees'
+
+  const data =
+    await response.json();
+
+
+  if (!data.success) {
+
+    throw new Error(
+      data.message ||
+      'โหลด Employees ไม่สำเร็จ'
+    );
+
+  }
+
+
+  employeeMap =
+    {};
+
+
+  const labeled =
+    [];
+
+
+  for (
+    const employee
+    of data.employees
+  ) {
+
+    const id =
+      String(
+        employee.employeeId
       );
 
 
-    const data =
-      await response.json();
+    const descriptors =
+      [];
 
 
-    if (!data.success) {
+    /*
+    รองรับ V2 หลาย Descriptor
+    */
 
-      throw new Error(
-        'โหลด Employees ไม่สำเร็จ'
-      );
+    for (
+      const descriptor
+      of employee.descriptors || []
+    ) {
+
+      if (
+        Array.isArray(descriptor) &&
+        descriptor.length === 128
+      ) {
+
+        descriptors.push(
+
+          new Float32Array(
+            descriptor
+          )
+
+        );
+
+      }
 
     }
 
 
-    const labeled =
-      [];
+    /*
+    เผื่อข้อมูล V1
+    */
 
-
-    employeeMap =
-      {};
-
-
-    for (
-      const employee
-      of data.employees
+    if (
+      descriptors.length === 0 &&
+      Array.isArray(
+        employee.descriptor
+      )
     ) {
 
-      employeeMap[
-        employee.employeeId
-      ] =
-        employee;
+      descriptors.push(
 
-
-      const descriptor =
         new Float32Array(
           employee.descriptor
-        );
-
-
-      labeled.push(
-
-        new faceapi
-          .LabeledFaceDescriptors(
-
-            employee.employeeId,
-
-            [
-              descriptor
-            ]
-
-          )
+        )
 
       );
 
@@ -687,78 +1390,104 @@ async function loadEmployees() {
 
 
     if (
-      labeled.length > 0
+      descriptors.length === 0
     ) {
 
-      faceMatcher =
-        new faceapi.FaceMatcher(
-          labeled,
-          MATCH_THRESHOLD
-        );
-
-    } else {
-
-      faceMatcher =
-        null;
+      continue;
 
     }
 
 
-    console.log(
-      'Employees loaded:',
-      labeled.length
-    );
+    employeeMap[id] =
+      employee;
 
 
-  } catch (error) {
+    labeled.push(
 
-    console.error(
-      'LOAD EMPLOYEE ERROR:',
-      error
+      new faceapi
+        .LabeledFaceDescriptors(
+          id,
+          descriptors
+        )
+
     );
 
   }
 
+
+  faceMatcher =
+
+    labeled.length
+
+    ? new faceapi.FaceMatcher(
+        labeled,
+        MATCH_THRESHOLD
+      )
+
+    : null;
+
+
+  console.log(
+    'Employee loaded:',
+    labeled.length
+  );
+
 }
 
 
-/*
-========================================
-CAMERA
-========================================
-*/
+/* ==================================================
+   CAMERA
+================================================== */
 
 async function startCamera() {
 
   if (!modelsReady) {
 
-    setScanStatus(
-      'AI ยังโหลดไม่เสร็จ',
-      'warning'
-    );
+    return;
+
+  }
+
+
+  if (
+    stream &&
+    stream.active
+  ) {
 
     return;
+
   }
 
 
   try {
 
+    /*
+    ขอเฉพาะกล้องหน้า
+    */
+
     stream =
-      await navigator
-        .mediaDevices
+      await navigator.mediaDevices
         .getUserMedia({
 
           video: {
 
-            facingMode:
-              'user',
+            facingMode: {
+              ideal: 'user'
+            },
+
+            /*
+            portrait resolution
+            */
 
             width: {
               ideal: 720
             },
 
             height: {
-              ideal: 1280
+              ideal: 960
+            },
+
+            aspectRatio: {
+              ideal: .75
             }
 
           },
@@ -785,22 +1514,11 @@ async function startCamera() {
         'startCameraBtn'
       )
       .classList
-      .add(
-        'hidden'
-      );
+      .add('hidden');
 
 
-    document
-      .getElementById(
-        'stopCameraBtn'
-      )
-      .classList
-      .remove(
-        'hidden'
-      );
-
-
-    setScanStatus(
+    updateStatus(
+      'กำลังค้นหาใบหน้า',
       'มองตรงเข้ากล้อง',
       'success'
     );
@@ -808,39 +1526,39 @@ async function startCamera() {
 
     scanLoop();
 
-
   } catch (error) {
 
     console.error(
-      'CAMERA ERROR:',
+      'CAMERA ERROR',
       error
     );
 
 
-    setScanStatus(
-      'เปิดกล้องไม่ได้: ' +
-      error.message,
-      'error'
+    document
+      .getElementById(
+        'startCameraBtn'
+      )
+      .classList
+      .remove('hidden');
+
+
+    updateStatus(
+      'ยังไม่ได้เปิดกล้อง',
+      'แตะปุ่มเปิดกล้อง',
+      'warning'
     );
+
+
+    throw error;
 
   }
 
 }
 
 
-/*
-========================================
-STOP CAMERA
-========================================
-*/
-
 function stopCamera() {
 
   scanning =
-    false;
-
-
-  processing =
     false;
 
 
@@ -856,46 +1574,19 @@ function stopCamera() {
   }
 
 
-  video.srcObject =
-    null;
-
-
   stream =
     null;
 
 
-  document
-    .getElementById(
-      'startCameraBtn'
-    )
-    .classList
-    .remove(
-      'hidden'
-    );
-
-
-  document
-    .getElementById(
-      'stopCameraBtn'
-    )
-    .classList
-    .add(
-      'hidden'
-    );
-
-
-  setScanStatus(
-    'ปิดกล้องแล้ว'
-  );
+  video.srcObject =
+    null;
 
 }
 
 
-/*
-========================================
-SCAN LOOP
-========================================
-*/
+/* ==================================================
+   SCAN LOOP
+================================================== */
 
 async function scanLoop() {
 
@@ -915,6 +1606,7 @@ async function scanLoop() {
     );
 
     return;
+
   }
 
 
@@ -937,7 +1629,7 @@ async function scanLoop() {
                 320,
 
               scoreThreshold:
-                0.45
+                .45
 
             })
 
@@ -946,38 +1638,32 @@ async function scanLoop() {
         .withFaceDescriptor();
 
 
-    /*
-    ไม่พบหน้า
-    */
-
     if (!detection) {
 
-      setScanStatus(
-        'ไม่พบใบหน้า',
+      updateStatus(
+        'กำลังค้นหาใบหน้า',
+        'ขยับใบหน้าให้อยู่ตรงกลางกรอบ',
         'warning'
       );
 
 
-      clearResult();
+      resetResult();
+
+    }
 
 
-    /*
-    ไม่มีฐานข้อมูล
-    */
+    else if (!faceMatcher) {
 
-    } else if (!faceMatcher) {
-
-      setScanStatus(
-        'ยังไม่มีพนักงานลงทะเบียน',
+      updateStatus(
+        'ไม่มีฐานข้อมูลใบหน้า',
+        'กรุณาลงทะเบียนพนักงานก่อน',
         'warning'
       );
 
+    }
 
-    /*
-    ตรวจเทียบ
-    */
 
-    } else {
+    else {
 
       const match =
         faceMatcher
@@ -986,27 +1672,18 @@ async function scanLoop() {
           );
 
 
-      /*
-      MATCH
-      */
-
       if (
         match.label !==
         'unknown'
       ) {
 
-        handleMatchedFace(
+        handleMatch(
           match
         );
 
-
-      /*
-      UNKNOWN
-      */
-
       } else {
 
-        handleUnknownFace(
+        handleUnknown(
           match
         );
 
@@ -1014,11 +1691,10 @@ async function scanLoop() {
 
     }
 
-
   } catch (error) {
 
     console.error(
-      'SCAN ERROR:',
+      'SCAN ERROR',
       error
     );
 
@@ -1031,24 +1707,24 @@ async function scanLoop() {
 
   setTimeout(
     scanLoop,
-    450
+    400
   );
 
 }
 
 
-/*
-========================================
-MATCH FACE
-========================================
-*/
+/* ==================================================
+   MATCH
+================================================== */
 
-function handleMatchedFace(
+function handleMatch(
   match
 ) {
 
   const employeeId =
-    match.label;
+    String(
+      match.label
+    );
 
 
   const employee =
@@ -1086,81 +1762,74 @@ function handleMatchedFace(
       'resultId'
     )
     .textContent =
+    'Employee ID : ' +
     employee.employeeId;
 
 
   document
     .getElementById(
-      'distanceResult'
+      'metricDistance'
     )
-    .innerHTML = `
-
-      <div class="metric">
-
-        <div class="metric-row">
-
-          <span class="metric-label">
-            Distance
-          </span>
-
-          <span class="metric-value">
-            ${distance.toFixed(6)}
-          </span>
-
-        </div>
+    .textContent =
+    distance.toFixed(6);
 
 
-        <div class="metric-row">
-
-          <span class="metric-label">
-            Threshold
-          </span>
-
-          <span class="metric-value">
-            ${MATCH_THRESHOLD.toFixed(6)}
-          </span>
-
-        </div>
+  document
+    .getElementById(
+      'metricThreshold'
+    )
+    .textContent =
+    MATCH_THRESHOLD.toFixed(6);
 
 
-        <div class="metric-row">
-
-          <span class="metric-label">
-            Margin
-          </span>
-
-          <span class="metric-value">
-            ${margin.toFixed(6)}
-          </span>
-
-        </div>
-
-      </div>
-
-    `;
+  document
+    .getElementById(
+      'metricMargin'
+    )
+    .textContent =
+    '+' +
+    margin.toFixed(6);
 
 
-  setScanStatus(
-    '✓ MATCH',
+  const badge =
+    document
+      .getElementById(
+        'matchBadge'
+      );
+
+
+  badge.textContent =
+    'MATCH';
+
+
+  badge.className =
+    'match-badge ok';
+
+
+  updateStatus(
+    'ยืนยันตัวตนสำเร็จ',
+    employee.name,
     'success'
   );
 
+
+  /*
+  debounce
+  */
 
   const now =
     Date.now();
 
 
-  /*
-  กันยิง API ซ้ำรัว ๆ
-  */
-
   if (
+
     employeeId ===
       lastMatchedId &&
 
     now -
       lastMatchedTime <
       10000
+
   ) {
 
     return;
@@ -1184,13 +1853,11 @@ function handleMatchedFace(
 }
 
 
-/*
-========================================
-UNKNOWN FACE
-========================================
-*/
+/* ==================================================
+   UNKNOWN
+================================================== */
 
-function handleUnknownFace(
+function handleUnknown(
   match
 ) {
 
@@ -1200,23 +1867,12 @@ function handleUnknownFace(
     );
 
 
-  const over =
-    distance -
-    MATCH_THRESHOLD;
-
-
-  setScanStatus(
-    'UNKNOWN',
-    'error'
-  );
-
-
   document
     .getElementById(
       'resultName'
     )
     .textContent =
-    'ไม่รู้จัก';
+    'Unknown';
 
 
   document
@@ -1224,67 +1880,64 @@ function handleUnknownFace(
       'resultId'
     )
     .textContent =
-    '-';
+    'ไม่พบข้อมูลพนักงาน';
 
 
   document
     .getElementById(
-      'distanceResult'
+      'metricDistance'
     )
-    .innerHTML = `
-
-      <div class="metric">
-
-        <div class="metric-row">
-
-          <span class="metric-label">
-            Distance
-          </span>
-
-          <span class="metric-value">
-            ${distance.toFixed(6)}
-          </span>
-
-        </div>
+    .textContent =
+    distance.toFixed(6);
 
 
-        <div class="metric-row">
-
-          <span class="metric-label">
-            Threshold
-          </span>
-
-          <span class="metric-value">
-            ${MATCH_THRESHOLD.toFixed(6)}
-          </span>
-
-        </div>
+  document
+    .getElementById(
+      'metricThreshold'
+    )
+    .textContent =
+    MATCH_THRESHOLD.toFixed(6);
 
 
-        <div class="metric-row">
+  document
+    .getElementById(
+      'metricMargin'
+    )
+    .textContent =
+    '-' +
+    (
+      distance -
+      MATCH_THRESHOLD
+    ).toFixed(6);
 
-          <span class="metric-label">
-            เกิน Threshold
-          </span>
 
-          <span class="metric-value">
-            ${over.toFixed(6)}
-          </span>
+  const badge =
+    document
+      .getElementById(
+        'matchBadge'
+      );
 
-        </div>
 
-      </div>
+  badge.textContent =
+    'UNKNOWN';
 
-    `;
+
+  badge.className =
+    'match-badge no';
+
+
+  updateStatus(
+    'ไม่รู้จักใบหน้านี้',
+    'ลองมองตรงและขยับเข้าใกล้กล้อง',
+    'error'
+  );
 
 }
 
 
-/*
-========================================
-SAVE ATTENDANCE
-========================================
-*/
+/* ==================================================
+   ATTENDANCE
+================================================== */
 
 async function saveAttendance(
   employee,
@@ -1295,9 +1948,7 @@ async function saveAttendance(
 
     const response =
       await fetch(
-
         API_URL,
-
         {
 
           method:
@@ -1321,7 +1972,6 @@ async function saveAttendance(
             })
 
         }
-
       );
 
 
@@ -1329,17 +1979,12 @@ async function saveAttendance(
       await response.json();
 
 
-    if (
-      data.success
-    ) {
+    if (data.success) {
 
-      setScanStatus(
-
-        '✓ ลงเวลา ' +
+      updateStatus(
+        'ลงเวลาสำเร็จ',
         data.timestamp,
-
         'success'
-
       );
 
 
@@ -1348,46 +1993,48 @@ async function saveAttendance(
       ) {
 
         navigator.vibrate(
-          [100,60,100]
+          [80, 40, 80]
         );
 
       }
 
+    }
 
-    } else if (
+
+    else if (
       data.duplicate
     ) {
 
-      setScanStatus(
+      updateStatus(
+        'ลงเวลาไปแล้ว',
         data.message,
         'warning'
-      );
-
-
-    } else {
-
-      setScanStatus(
-
-        data.message ||
-        'บันทึกไม่สำเร็จ',
-
-        'error'
-
       );
 
     }
 
 
+    else {
+
+      updateStatus(
+        'บันทึกไม่สำเร็จ',
+        data.message || '',
+        'error'
+      );
+
+    }
+
   } catch (error) {
 
     console.error(
-      'SAVE ERROR:',
+      'ATTENDANCE ERROR',
       error
     );
 
 
-    setScanStatus(
+    updateStatus(
       'เชื่อมต่อ Server ไม่สำเร็จ',
+      error.message,
       'error'
     );
 
@@ -1396,18 +2043,118 @@ async function saveAttendance(
 }
 
 
-/*
-========================================
-PREVIEW ENROLL
-========================================
-*/
+/* ==================================================
+   STATUS UI
+================================================== */
 
-function previewEnrollImage() {
+function updateStatus(
+  title,
+  description,
+  type
+) {
+
+  document
+    .getElementById(
+      'scanStatus'
+    )
+    .textContent =
+    title;
+
+
+  document
+    .getElementById(
+      'scanStatusDesc'
+    )
+    .textContent =
+    description || '';
+
+
+  const card =
+    document
+      .getElementById(
+        'statusCard'
+      );
+
+
+  card.className =
+    'status-card ' +
+    (
+      type ||
+      ''
+    );
+
+}
+
+
+/* ==================================================
+   RESET RESULT
+================================================== */
+
+function resetResult() {
+
+  document
+    .getElementById(
+      'resultName'
+    )
+    .textContent =
+    '-';
+
+
+  document
+    .getElementById(
+      'resultId'
+    )
+    .textContent =
+    'Employee ID : -';
+
+
+  document
+    .getElementById(
+      'metricDistance'
+    )
+    .textContent =
+    '-';
+
+
+  document
+    .getElementById(
+      'metricMargin'
+    )
+    .textContent =
+    '-';
+
+
+  const badge =
+    document
+      .getElementById(
+        'matchBadge'
+      );
+
+
+  badge.textContent =
+    'WAITING';
+
+
+  badge.className =
+    'match-badge';
+
+}
+
+
+/* ==================================================
+   PREVIEW
+================================================== */
+
+function previewImage(
+  inputId,
+  previewId,
+  statusId
+) {
 
   const file =
     document
       .getElementById(
-        'faceFile'
+        inputId
       )
       .files[0];
 
@@ -1417,20 +2164,21 @@ function previewEnrollImage() {
   }
 
 
-  const img =
+  const preview =
     document
       .getElementById(
-        'enrollPreview'
+        previewId
       );
 
 
-  img.src =
+  preview.src =
     URL.createObjectURL(
       file
     );
 
 
-  img.classList
+  preview
+    .classList
     .remove(
       'hidden'
     );
@@ -1438,36 +2186,161 @@ function previewEnrollImage() {
 
   document
     .getElementById(
-      'debugInfo'
+      statusId
     )
     .textContent =
-    file.name +
-    ' / ' +
-    Math.round(
-      file.size /
-      1024
-    ) +
-    ' KB';
+    '✓ เลือกรูปแล้ว';
 
 }
 
 
-/*
-========================================
-ENROLL FACE
-========================================
-*/
+/* ==================================================
+   PROCESS ENROLL IMAGE
+================================================== */
+
+async function processFaceImage(
+  file,
+  statusId,
+  label
+) {
+
+  const status =
+    document.getElementById(
+      statusId
+    );
+
+
+  status.textContent =
+    'กำลังตรวจ ' +
+    label +
+    '...';
+
+
+  const img =
+    await faceapi
+      .bufferToImage(
+        file
+      );
+
+
+  const MAX_WIDTH =
+    1000;
+
+
+  let width =
+    img.width;
+
+
+  let height =
+    img.height;
+
+
+  if (
+    width >
+    MAX_WIDTH
+  ) {
+
+    const ratio =
+      MAX_WIDTH /
+      width;
+
+
+    width =
+      MAX_WIDTH;
+
+
+    height =
+      Math.round(
+        height *
+        ratio
+      );
+
+  }
+
+
+  const canvas =
+    document.createElement(
+      'canvas'
+    );
+
+
+  canvas.width =
+    width;
+
+
+  canvas.height =
+    height;
+
+
+  canvas
+    .getContext('2d')
+    .drawImage(
+      img,
+      0,
+      0,
+      width,
+      height
+    );
+
+
+  const detection =
+    await faceapi
+      .detectSingleFace(
+
+        canvas,
+
+        new faceapi
+          .SsdMobilenetv1Options({
+
+            minConfidence:
+              .35
+
+          })
+
+      )
+      .withFaceLandmarks()
+      .withFaceDescriptor();
+
+
+  if (!detection) {
+
+    status.textContent =
+      '✕ ไม่พบใบหน้า';
+
+
+    throw new Error(
+      'ไม่พบใบหน้าใน ' +
+      label
+    );
+
+  }
+
+
+  const descriptor =
+    Array.from(
+      detection.descriptor
+    );
+
+
+  status.textContent =
+    '✓ พบใบหน้า';
+
+
+  return descriptor;
+
+}
+
+
+/* ==================================================
+   ENROLL
+================================================== */
 
 async function enrollFace() {
 
   if (!modelsReady) {
 
-    setEnrollStatus(
-      'AI ยังโหลดไม่เสร็จ',
-      'warning'
-    );
-
     return;
+
   }
 
 
@@ -1489,227 +2362,112 @@ async function enrollFace() {
       .trim();
 
 
-  const file =
+  const front =
     document
       .getElementById(
-        'faceFile'
+        'frontFile'
+      )
+      .files[0];
+
+
+  const left =
+    document
+      .getElementById(
+        'leftFile'
+      )
+      .files[0];
+
+
+  const right =
+    document
+      .getElementById(
+        'rightFile'
       )
       .files[0];
 
 
   if (
     !employeeId ||
-    !name ||
-    !file
+    !name
   ) {
 
-    setEnrollStatus(
-      'กรอกข้อมูลและเลือกรูปก่อน',
-      'warning'
-    );
+    document
+      .getElementById(
+        'enrollStatus'
+      )
+      .textContent =
+      'กรอก Employee ID และชื่อก่อน';
 
     return;
+
   }
 
 
-  setEnrollStatus(
-    'กำลังเตรียมรูป...',
-    'warning'
-  );
+  if (
+    !front ||
+    !left ||
+    !right
+  ) {
+
+    document
+      .getElementById(
+        'enrollStatus'
+      )
+      .textContent =
+      'กรุณาเลือกรูปให้ครบ 3 มุม';
+
+    return;
+
+  }
+
+
+  const button =
+    document.getElementById(
+      'enrollBtn'
+    );
+
+
+  button.disabled =
+    true;
 
 
   try {
 
-    /*
-    โหลดรูป
-    */
-
-    const img =
-      await faceapi
-        .bufferToImage(
-          file
-        );
-
-
-    console.log(
-      'Original:',
-      img.width,
-      img.height
-    );
-
-
-    /*
-    Resize
-    */
-
-    const MAX_WIDTH =
-      1000;
-
-
-    let width =
-      img.width;
-
-
-    let height =
-      img.height;
-
-
-    if (
-      width >
-      MAX_WIDTH
-    ) {
-
-      const ratio =
-        MAX_WIDTH /
-        width;
-
-
-      width =
-        MAX_WIDTH;
-
-
-      height =
-        Math.round(
-          height *
-          ratio
-        );
-
-    }
-
-
-    const canvas =
-      document
-        .createElement(
-          'canvas'
-        );
-
-
-    canvas.width =
-      width;
-
-
-    canvas.height =
-      height;
-
-
-    const ctx =
-      canvas
-        .getContext(
-          '2d'
-        );
-
-
-    ctx.drawImage(
-      img,
-      0,
-      0,
-      width,
-      height
-    );
-
-
     document
       .getElementById(
-        'debugInfo'
+        'enrollStatus'
       )
       .textContent =
-      'Image: ' +
-      img.width +
-      'x' +
-      img.height +
-      ' → ' +
-      width +
-      'x' +
-      height;
+      'กำลังประมวลผล...';
 
 
-    setEnrollStatus(
-      'กำลังค้นหาใบหน้า...',
-      'warning'
-    );
-
-
-    /*
-    SSD Mobilenet
-    */
-
-    const detection =
-      await faceapi
-        .detectSingleFace(
-
-          canvas,
-
-          new faceapi
-            .SsdMobilenetv1Options({
-
-              minConfidence:
-                0.35
-
-            })
-
-        )
-        .withFaceLandmarks()
-        .withFaceDescriptor();
-
-
-    /*
-    ไม่เจอหน้า
-    */
-
-    if (!detection) {
-
-      setEnrollStatus(
-        'ไม่พบใบหน้า กรุณาลองรูปอื่น',
-        'error'
+    const descriptorFront =
+      await processFaceImage(
+        front,
+        'frontStatus',
+        'หน้าตรง'
       );
 
 
-      document
-        .getElementById(
-          'debugInfo'
-        )
-        .textContent +=
-        ' / FACE NOT FOUND';
-
-
-      return;
-    }
-
-
-    /*
-    Descriptor
-    */
-
-    const descriptor =
-      Array.from(
-        detection.descriptor
+    const descriptorLeft =
+      await processFaceImage(
+        left,
+        'leftStatus',
+        'ด้านซ้าย'
       );
 
 
-    document
-      .getElementById(
-        'debugInfo'
-      )
-      .textContent +=
-      ' / FACE FOUND / Descriptor: ' +
-      descriptor.length;
+    const descriptorRight =
+      await processFaceImage(
+        right,
+        'rightStatus',
+        'ด้านขวา'
+      );
 
-
-    setEnrollStatus(
-      '✓ พบใบหน้า กำลังบันทึก...',
-      'success'
-    );
-
-
-    /*
-    ส่ง Apps Script
-    */
 
     const response =
       await fetch(
-
         API_URL,
-
         {
 
           method:
@@ -1727,13 +2485,18 @@ async function enrollFace() {
               name:
                 name,
 
-              descriptor:
-                descriptor
+              descriptorFront:
+                descriptorFront,
+
+              descriptorLeft:
+                descriptorLeft,
+
+              descriptorRight:
+                descriptorRight
 
             })
 
         }
-
       );
 
 
@@ -1744,88 +2507,52 @@ async function enrollFace() {
     if (!data.success) {
 
       throw new Error(
-        data.message ||
-        'บันทึกไม่สำเร็จ'
+        data.message
       );
 
     }
 
 
-    setEnrollStatus(
-
-      '✓ ลงทะเบียน ' +
+    document
+      .getElementById(
+        'enrollStatus'
+      )
+      .textContent =
+      '✅ ลงทะเบียน ' +
       name +
-      ' สำเร็จ',
+      ' สำเร็จ';
 
-      'success'
-
-    );
-
-
-    /*
-    โหลดฐานข้อมูลใหม่
-    */
 
     await loadEmployees();
-
 
   } catch (error) {
 
     console.error(
-      'ENROLL ERROR:',
       error
     );
 
 
-    setEnrollStatus(
+    document
+      .getElementById(
+        'enrollStatus'
+      )
+      .textContent =
+      '❌ ' +
+      error.message;
 
-      'ผิดพลาด: ' +
-      error.message,
+  } finally {
 
-      'error'
-
-    );
+    button.disabled =
+      false;
 
   }
 
 }
 
 
-/*
-========================================
-SHOW SCANNER
-========================================
-*/
-
-function showScanner() {
-
-  document
-    .getElementById(
-      'scannerPage'
-    )
-    .classList
-    .remove(
-      'hidden'
-    );
-
-
-  document
-    .getElementById(
-      'enrollPage'
-    )
-    .classList
-    .add(
-      'hidden'
-    );
-
-}
-
-
-/*
-========================================
-SHOW ENROLL
-========================================
-*/
+/* ==================================================
+   PAGE
+================================================== */
 
 function showEnroll() {
 
@@ -1854,115 +2581,47 @@ function showEnroll() {
 }
 
 
-/*
-========================================
-STATUS
-========================================
-*/
+async function showScanner() {
 
-function setScanStatus(
-  text,
-  type
-) {
-
-  const el =
-    document
-      .getElementById(
-        'scanStatus'
-      );
+  document
+    .getElementById(
+      'enrollPage'
+    )
+    .classList
+    .add(
+      'hidden'
+    );
 
 
-  el.textContent =
-    text;
+  document
+    .getElementById(
+      'scannerPage'
+    )
+    .classList
+    .remove(
+      'hidden'
+    );
 
 
-  el.className =
-    'status';
+  resetResult();
 
 
-  if (type) {
+  if (modelsReady) {
 
-    el.classList
-      .add(
-        type
-      );
+    try {
+
+      await startCamera();
+
+    } catch (error) {}
 
   }
 
 }
 
 
-function setEnrollStatus(
-  text,
-  type
-) {
-
-  const el =
-    document
-      .getElementById(
-        'enrollStatus'
-      );
-
-
-  el.textContent =
-    text;
-
-
-  el.className =
-    'status';
-
-
-  if (type) {
-
-    el.classList
-      .add(
-        type
-      );
-
-  }
-
-}
-
-
-/*
-========================================
-CLEAR RESULT
-========================================
-*/
-
-function clearResult() {
-
-  document
-    .getElementById(
-      'resultName'
-    )
-    .textContent =
-    '-';
-
-
-  document
-    .getElementById(
-      'resultId'
-    )
-    .textContent =
-    '-';
-
-
-  document
-    .getElementById(
-      'distanceResult'
-    )
-    .innerHTML =
-    '';
-
-}
-
-
-/*
-========================================
-START
-========================================
-*/
+/* ==================================================
+   START
+================================================== */
 
 window.addEventListener(
   'load',
@@ -1970,7 +2629,6 @@ window.addEventListener(
 );
 
 </script>
-
 
 </body>
 </html>
