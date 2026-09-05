@@ -1,0 +1,1532 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta
+  name="viewport"
+  content="width=device-width,
+  initial-scale=1,
+  maximum-scale=1,
+  user-scalable=no"
+>
+
+<title>
+Face Attendance V1
+</title>
+
+
+<script
+  src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js">
+</script>
+
+
+<style>
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: #f3f4f6;
+  font-family: Arial, sans-serif;
+  color: #111827;
+}
+
+.app {
+  max-width: 600px;
+  margin: auto;
+  padding: 16px;
+}
+
+.card {
+  background: white;
+  border-radius: 18px;
+  padding: 18px;
+  margin-bottom: 14px;
+
+  box-shadow:
+    0 4px 15px
+    rgba(0,0,0,.08);
+}
+
+h1 {
+  margin: 0;
+  font-size: 26px;
+}
+
+.subtitle {
+  margin-top: 6px;
+  color: #6b7280;
+}
+
+.tabs {
+  display: flex;
+  gap: 8px;
+}
+
+.tabs button {
+  flex: 1;
+}
+
+button {
+  border: none;
+  border-radius: 12px;
+  padding: 15px;
+
+  font-size: 17px;
+  font-weight: bold;
+
+  cursor: pointer;
+}
+
+.primary {
+  background: #111827;
+  color: white;
+}
+
+.secondary {
+  background: #e5e7eb;
+  color: #111827;
+}
+
+input {
+  width: 100%;
+
+  padding: 14px;
+
+  margin-top: 8px;
+  margin-bottom: 10px;
+
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+
+  font-size: 17px;
+}
+
+label {
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.status {
+  padding: 15px;
+  border-radius: 12px;
+  text-align: center;
+  font-weight: bold;
+
+  background: #e5e7eb;
+}
+
+.success {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.warning {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.error {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.camera {
+  position: relative;
+
+  background: black;
+
+  overflow: hidden;
+
+  border-radius: 16px;
+}
+
+video {
+  display: block;
+
+  width: 100%;
+}
+
+.face-frame {
+  position: absolute;
+
+  left: 18%;
+  top: 12%;
+
+  width: 64%;
+  height: 75%;
+
+  border:
+    3px solid
+    rgba(255,255,255,.9);
+
+  border-radius: 45%;
+
+  pointer-events: none;
+}
+
+.result-name {
+  font-size: 30px;
+  font-weight: bold;
+  text-align: center;
+}
+
+.result-id {
+  margin-top: 5px;
+
+  text-align: center;
+
+  color: #6b7280;
+
+  font-size: 18px;
+}
+
+.distance {
+  text-align: center;
+  margin-top: 8px;
+
+  color: #6b7280;
+}
+
+.hidden {
+  display: none;
+}
+
+#enrollPreview {
+  width: 100%;
+  max-height: 350px;
+  object-fit: contain;
+
+  border-radius: 12px;
+
+  margin-top: 10px;
+}
+
+</style>
+
+</head>
+
+
+<body>
+
+<div class="app">
+
+
+  <div class="card">
+
+    <h1>
+      👤 Face Attendance
+    </h1>
+
+    <div class="subtitle">
+      Face Recognition V1
+    </div>
+
+  </div>
+
+
+  <div class="card">
+
+    <div class="tabs">
+
+      <button
+        class="primary"
+        onclick="showScanner()"
+      >
+        สแกนเข้างาน
+      </button>
+
+
+      <button
+        class="secondary"
+        onclick="showEnroll()"
+      >
+        ลงทะเบียน
+      </button>
+
+    </div>
+
+  </div>
+
+
+  <!-- ========================
+       SCANNER
+  ========================= -->
+
+  <div id="scannerPage">
+
+
+    <div class="card">
+
+      <div class="camera">
+
+        <video
+          id="video"
+          autoplay
+          muted
+          playsinline
+        ></video>
+
+        <div
+          class="face-frame"
+        ></div>
+
+      </div>
+
+
+      <button
+        id="startCameraBtn"
+        class="primary"
+        style="width:100%; margin-top:12px;"
+        onclick="startCamera()"
+      >
+        📷 เปิดกล้อง
+      </button>
+
+
+      <button
+        id="stopCameraBtn"
+        class="secondary hidden"
+        style="width:100%; margin-top:8px;"
+        onclick="stopCamera()"
+      >
+        ปิดกล้อง
+      </button>
+
+    </div>
+
+
+    <div
+      id="scanStatus"
+      class="status"
+    >
+      กำลังโหลด AI...
+    </div>
+
+
+    <div class="card">
+
+      <div
+        id="resultName"
+        class="result-name"
+      >
+        -
+      </div>
+
+      <div
+        id="resultId"
+        class="result-id"
+      >
+        -
+      </div>
+
+      <div
+        id="distanceResult"
+        class="distance"
+      >
+      </div>
+
+    </div>
+
+
+  </div>
+
+
+
+  <!-- ========================
+       ENROLL
+  ========================= -->
+
+  <div
+    id="enrollPage"
+    class="hidden"
+  >
+
+
+    <div class="card">
+
+      <label>
+        Employee ID
+      </label>
+
+      <input
+        id="employeeId"
+        placeholder="เช่น EMP001"
+      >
+
+
+      <label>
+        ชื่อ
+      </label>
+
+      <input
+        id="employeeName"
+        placeholder="ชื่อพนักงาน"
+      >
+
+
+      <label>
+        รูปใบหน้า
+      </label>
+
+      <input
+        id="faceFile"
+        type="file"
+        accept="image/*"
+        onchange="previewEnrollImage()"
+      >
+
+
+      <img
+        id="enrollPreview"
+        class="hidden"
+      >
+
+
+      <button
+        class="primary"
+        style="width:100%; margin-top:14px;"
+        onclick="enrollFace()"
+      >
+        ลงทะเบียนใบหน้า
+      </button>
+
+    </div>
+
+
+    <div
+      id="enrollStatus"
+      class="status"
+    >
+      เลือกรูปใบหน้าที่เห็นหน้าชัด
+    </div>
+
+
+  </div>
+
+
+</div>
+
+
+
+<script>
+
+/*
+========================================
+CONFIG
+========================================
+*/
+
+const API_URL =
+  '1_yy0-hnHWay4yZFcvZZPipZ_3M5-Kr0wRC3m3uNpZ9A';
+
+
+const MODEL_URL =
+  'https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@master/weights';
+
+
+/*
+  ยิ่งต่ำยิ่งเข้มงวด
+
+  0.45 = ค่อนข้างเข้ม
+  0.50 = กลาง
+  0.55 = ผ่อน
+
+  เริ่มทดลองที่ 0.50
+*/
+
+const MATCH_THRESHOLD =
+  0.50;
+
+
+/*
+========================================
+GLOBAL
+========================================
+*/
+
+const video =
+  document.getElementById(
+    'video'
+  );
+
+
+let stream = null;
+
+let modelsReady = false;
+
+let scanning = false;
+
+let processing = false;
+
+let faceMatcher = null;
+
+let employeeMap = {};
+
+let lastMatchedId = '';
+
+let lastMatchedTime = 0;
+
+
+/*
+========================================
+LOAD MODEL
+========================================
+*/
+
+async function loadModels() {
+
+  setScanStatus(
+    'กำลังโหลด AI...',
+    'warning'
+  );
+
+
+  try {
+
+    await Promise.all([
+
+      faceapi.nets
+        .tinyFaceDetector
+        .loadFromUri(
+          MODEL_URL
+        ),
+
+      faceapi.nets
+        .faceLandmark68Net
+        .loadFromUri(
+          MODEL_URL
+        ),
+
+      faceapi.nets
+        .faceRecognitionNet
+        .loadFromUri(
+          MODEL_URL
+        )
+
+    ]);
+
+
+    modelsReady = true;
+
+
+    await loadEmployees();
+
+
+    setScanStatus(
+      'AI พร้อมใช้งาน',
+      'success'
+    );
+
+
+  } catch (error) {
+
+    console.error(error);
+
+
+    setScanStatus(
+      'โหลด AI ไม่สำเร็จ',
+      'error'
+    );
+
+  }
+
+}
+
+
+
+/*
+========================================
+LOAD EMPLOYEES
+========================================
+*/
+
+async function loadEmployees() {
+
+  try {
+
+    const response =
+      await fetch(
+        API_URL +
+        '?action=employees'
+      );
+
+
+    const data =
+      await response.json();
+
+
+    if (
+      !data.success
+    ) {
+      throw new Error(
+        'โหลด Employees ไม่สำเร็จ'
+      );
+    }
+
+
+    const labeled = [];
+
+    employeeMap = {};
+
+
+    for (
+      const employee
+      of data.employees
+    ) {
+
+      employeeMap[
+        employee.employeeId
+      ] = employee;
+
+
+      const descriptor =
+        new Float32Array(
+          employee.descriptor
+        );
+
+
+      labeled.push(
+
+        new faceapi
+          .LabeledFaceDescriptors(
+
+            employee.employeeId,
+
+            [
+              descriptor
+            ]
+
+          )
+
+      );
+
+    }
+
+
+    if (
+      labeled.length > 0
+    ) {
+
+      faceMatcher =
+        new faceapi.FaceMatcher(
+          labeled,
+          MATCH_THRESHOLD
+        );
+
+    } else {
+
+      faceMatcher = null;
+
+    }
+
+
+    console.log(
+      'Employees:',
+      labeled.length
+    );
+
+
+  } catch (error) {
+
+    console.error(
+      error
+    );
+
+  }
+
+}
+
+
+
+/*
+========================================
+CAMERA
+========================================
+*/
+
+async function startCamera() {
+
+  if (!modelsReady) {
+
+    setScanStatus(
+      'AI ยังโหลดไม่เสร็จ',
+      'warning'
+    );
+
+    return;
+  }
+
+
+  try {
+
+    stream =
+      await navigator
+        .mediaDevices
+        .getUserMedia({
+
+          video: {
+
+            facingMode:
+              'user',
+
+            width: {
+              ideal: 720
+            },
+
+            height: {
+              ideal: 1280
+            }
+
+          },
+
+          audio: false
+
+        });
+
+
+    video.srcObject =
+      stream;
+
+
+    await video.play();
+
+
+    scanning = true;
+
+
+    document
+      .getElementById(
+        'startCameraBtn'
+      )
+      .classList
+      .add(
+        'hidden'
+      );
+
+
+    document
+      .getElementById(
+        'stopCameraBtn'
+      )
+      .classList
+      .remove(
+        'hidden'
+      );
+
+
+    setScanStatus(
+      'มองตรงเข้ากล้อง',
+      'success'
+    );
+
+
+    scanLoop();
+
+
+  } catch (error) {
+
+    console.error(
+      error
+    );
+
+
+    setScanStatus(
+      'เปิดกล้องไม่ได้: ' +
+      error.message,
+      'error'
+    );
+
+  }
+
+}
+
+
+
+function stopCamera() {
+
+  scanning = false;
+
+
+  if (stream) {
+
+    stream
+      .getTracks()
+      .forEach(
+        track =>
+          track.stop()
+      );
+
+  }
+
+
+  video.srcObject =
+    null;
+
+
+  stream = null;
+
+
+  document
+    .getElementById(
+      'startCameraBtn'
+    )
+    .classList
+    .remove(
+      'hidden'
+    );
+
+
+  document
+    .getElementById(
+      'stopCameraBtn'
+    )
+    .classList
+    .add(
+      'hidden'
+    );
+
+
+  setScanStatus(
+    'ปิดกล้องแล้ว'
+  );
+
+}
+
+
+
+/*
+========================================
+FACE SCAN
+========================================
+*/
+
+async function scanLoop() {
+
+  if (!scanning) {
+    return;
+  }
+
+
+  if (
+    processing ||
+    video.readyState < 2
+  ) {
+
+    setTimeout(
+      scanLoop,
+      300
+    );
+
+    return;
+  }
+
+
+  processing = true;
+
+
+  try {
+
+    const detection =
+      await faceapi
+        .detectSingleFace(
+
+          video,
+
+          new faceapi
+            .TinyFaceDetectorOptions({
+
+              inputSize: 320,
+
+              scoreThreshold:
+                0.5
+
+            })
+
+        )
+        .withFaceLandmarks()
+        .withFaceDescriptor();
+
+
+    if (!detection) {
+
+      setScanStatus(
+        'ไม่พบใบหน้า',
+        'warning'
+      );
+
+
+      clearResult();
+
+    } else if (!faceMatcher) {
+
+      setScanStatus(
+        'ยังไม่มีพนักงานลงทะเบียน',
+        'warning'
+      );
+
+    } else {
+
+      const match =
+        faceMatcher
+          .findBestMatch(
+            detection.descriptor
+          );
+
+
+      if (
+        match.label !==
+        'unknown'
+      ) {
+
+        handleMatchedFace(
+          match
+        );
+
+      } else {
+
+        setScanStatus(
+          'ไม่รู้จักใบหน้านี้',
+          'error'
+        );
+
+
+        clearResult();
+
+      }
+
+    }
+
+
+  } catch (error) {
+
+    console.error(
+      error
+    );
+
+  }
+
+
+  processing = false;
+
+
+  setTimeout(
+    scanLoop,
+    500
+  );
+
+}
+
+
+
+/*
+========================================
+MATCH
+========================================
+*/
+
+function handleMatchedFace(
+  match
+) {
+
+  const employeeId =
+    match.label;
+
+
+  const employee =
+    employeeMap[
+      employeeId
+    ];
+
+
+  if (!employee) {
+    return;
+  }
+
+
+  document
+    .getElementById(
+      'resultName'
+    )
+    .textContent =
+    employee.name;
+
+
+  document
+    .getElementById(
+      'resultId'
+    )
+    .textContent =
+    employee.employeeId;
+
+
+  document
+    .getElementById(
+      'distanceResult'
+    )
+    .textContent =
+    'Face distance: ' +
+    match.distance
+      .toFixed(3);
+
+
+  setScanStatus(
+    '✓ พบพนักงาน',
+    'success'
+  );
+
+
+  /*
+    client side debounce
+  */
+
+  const now =
+    Date.now();
+
+
+  if (
+    employeeId ===
+      lastMatchedId &&
+
+    now -
+      lastMatchedTime
+      < 10000
+  ) {
+
+    return;
+
+  }
+
+
+  lastMatchedId =
+    employeeId;
+
+  lastMatchedTime =
+    now;
+
+
+  saveAttendance(
+    employee,
+    match.distance
+  );
+
+}
+
+
+
+/*
+========================================
+SAVE ATTENDANCE
+========================================
+*/
+
+async function saveAttendance(
+  employee,
+  distance
+) {
+
+  try {
+
+    const response =
+      await fetch(
+        API_URL,
+        {
+
+          method: 'POST',
+
+          body:
+            JSON.stringify({
+
+              action:
+                'attendance',
+
+              employeeId:
+                employee.employeeId,
+
+              name:
+                employee.name,
+
+              distance:
+                distance
+
+            })
+
+        }
+      );
+
+
+    const data =
+      await response.json();
+
+
+    if (
+      data.success
+    ) {
+
+      setScanStatus(
+
+        '✓ ลงเวลา ' +
+        data.timestamp,
+
+        'success'
+
+      );
+
+
+      if (
+        navigator.vibrate
+      ) {
+
+        navigator.vibrate(
+          [100, 60, 100]
+        );
+
+      }
+
+
+    } else if (
+      data.duplicate
+    ) {
+
+      setScanStatus(
+        data.message,
+        'warning'
+      );
+
+
+    } else {
+
+      setScanStatus(
+        data.message ||
+        'บันทึกไม่สำเร็จ',
+        'error'
+      );
+
+    }
+
+
+  } catch (error) {
+
+    console.error(
+      error
+    );
+
+
+    setScanStatus(
+      'เชื่อมต่อ Server ไม่สำเร็จ',
+      'error'
+    );
+
+  }
+
+}
+
+
+
+/*
+========================================
+ENROLL
+========================================
+*/
+
+function previewEnrollImage() {
+
+  const file =
+    document
+      .getElementById(
+        'faceFile'
+      )
+      .files[0];
+
+
+  if (!file) {
+    return;
+  }
+
+
+  const img =
+    document.getElementById(
+      'enrollPreview'
+    );
+
+
+  img.src =
+    URL.createObjectURL(
+      file
+    );
+
+
+  img.classList.remove(
+    'hidden'
+  );
+
+}
+
+
+
+async function enrollFace() {
+
+  if (!modelsReady) {
+
+    setEnrollStatus(
+      'AI ยังโหลดไม่เสร็จ',
+      'warning'
+    );
+
+    return;
+
+  }
+
+
+  const employeeId =
+    document
+      .getElementById(
+        'employeeId'
+      )
+      .value
+      .trim();
+
+
+  const name =
+    document
+      .getElementById(
+        'employeeName'
+      )
+      .value
+      .trim();
+
+
+  const file =
+    document
+      .getElementById(
+        'faceFile'
+      )
+      .files[0];
+
+
+  if (
+    !employeeId ||
+    !name ||
+    !file
+  ) {
+
+    setEnrollStatus(
+      'กรอกข้อมูลและเลือกรูปก่อน',
+      'warning'
+    );
+
+    return;
+
+  }
+
+
+  setEnrollStatus(
+    'กำลังวิเคราะห์ใบหน้า...',
+    'warning'
+  );
+
+
+  try {
+
+    const img =
+      await faceapi
+        .bufferToImage(
+          file
+        );
+
+
+    const detection =
+      await faceapi
+        .detectSingleFace(
+
+          img,
+
+          new faceapi
+            .TinyFaceDetectorOptions({
+
+              inputSize:
+                416,
+
+              scoreThreshold:
+                0.5
+
+            })
+
+        )
+        .withFaceLandmarks()
+        .withFaceDescriptor();
+
+
+    if (!detection) {
+
+      setEnrollStatus(
+        'ไม่พบใบหน้าในรูป',
+        'error'
+      );
+
+      return;
+
+    }
+
+
+    const descriptor =
+      Array.from(
+        detection.descriptor
+      );
+
+
+    setEnrollStatus(
+      'กำลังบันทึก...',
+      'warning'
+    );
+
+
+    const response =
+      await fetch(
+        API_URL,
+        {
+
+          method: 'POST',
+
+          body:
+            JSON.stringify({
+
+              action:
+                'enroll',
+
+              employeeId:
+                employeeId,
+
+              name:
+                name,
+
+              descriptor:
+                descriptor
+
+            })
+
+        }
+      );
+
+
+    const data =
+      await response.json();
+
+
+    if (
+      !data.success
+    ) {
+
+      throw new Error(
+        data.message
+      );
+
+    }
+
+
+    setEnrollStatus(
+      '✓ ลงทะเบียน ' +
+      name +
+      ' สำเร็จ',
+      'success'
+    );
+
+
+    /*
+      Reload database
+    */
+
+    await loadEmployees();
+
+
+  } catch (error) {
+
+    console.error(
+      error
+    );
+
+
+    setEnrollStatus(
+      'ผิดพลาด: ' +
+      error.message,
+      'error'
+    );
+
+  }
+
+}
+
+
+
+/*
+========================================
+UI
+========================================
+*/
+
+function showScanner() {
+
+  document
+    .getElementById(
+      'scannerPage'
+    )
+    .classList
+    .remove(
+      'hidden'
+    );
+
+
+  document
+    .getElementById(
+      'enrollPage'
+    )
+    .classList
+    .add(
+      'hidden'
+    );
+
+}
+
+
+
+function showEnroll() {
+
+  stopCamera();
+
+
+  document
+    .getElementById(
+      'scannerPage'
+    )
+    .classList
+    .add(
+      'hidden'
+    );
+
+
+  document
+    .getElementById(
+      'enrollPage'
+    )
+    .classList
+    .remove(
+      'hidden'
+    );
+
+}
+
+
+
+function setScanStatus(
+  text,
+  type
+) {
+
+  const el =
+    document.getElementById(
+      'scanStatus'
+    );
+
+
+  el.textContent =
+    text;
+
+
+  el.className =
+    'status';
+
+
+  if (type) {
+
+    el.classList.add(
+      type
+    );
+
+  }
+
+}
+
+
+
+function setEnrollStatus(
+  text,
+  type
+) {
+
+  const el =
+    document.getElementById(
+      'enrollStatus'
+    );
+
+
+  el.textContent =
+    text;
+
+
+  el.className =
+    'status';
+
+
+  if (type) {
+
+    el.classList.add(
+      type
+    );
+
+  }
+
+}
+
+
+
+function clearResult() {
+
+  document
+    .getElementById(
+      'resultName'
+    )
+    .textContent =
+    '-';
+
+
+  document
+    .getElementById(
+      'resultId'
+    )
+    .textContent =
+    '-';
+
+
+  document
+    .getElementById(
+      'distanceResult'
+    )
+    .textContent =
+    '';
+
+}
+
+
+
+/*
+========================================
+START
+========================================
+*/
+
+window.addEventListener(
+  'load',
+  loadModels
+);
+
+</script>
+
+
+</body>
+
+</html>
