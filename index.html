@@ -740,6 +740,17 @@
         center;
     }
 
+
+
+    /* ============================== ADMIN V3 ============================== */
+    .modal{position:fixed;inset:0;z-index:100;background:rgba(3,7,18,.82);display:flex;align-items:center;justify-content:center;padding:18px;backdrop-filter:blur(10px)}
+    .modal-card{width:min(440px,100%);background:#0f1b2e;border:1px solid var(--line);border-radius:24px;padding:20px;box-shadow:0 30px 90px rgba(0,0,0,.55)}
+    .admin-page{min-height:70vh}.admin-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:14px}.admin-title{font-size:22px;font-weight:900}
+    .admin-tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}.tab-btn{border:1px solid var(--line);background:var(--panel2);color:white;border-radius:14px;padding:12px;font-weight:800}.tab-btn.active{background:#38bdf8;color:#001018}
+    .toolbar{display:grid;grid-template-columns:1fr auto;gap:8px;margin:12px 0}.small-btn{border:0;border-radius:12px;padding:11px 13px;font-weight:800}.primary-small{background:#38bdf8;color:#001018}.danger-small{background:rgba(239,68,68,.16);color:#fca5a5;border:1px solid rgba(239,68,68,.25)}
+    .employee-list{display:grid;gap:10px}.employee-card{padding:14px;border:1px solid var(--line);border-radius:17px;background:rgba(255,255,255,.035)}.employee-top{display:flex;justify-content:space-between;gap:10px}.employee-name{font-weight:900;font-size:16px}.employee-meta{color:var(--muted);font-size:12px;margin-top:4px}.chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:9px}.chip{font-size:10px;font-weight:800;padding:5px 8px;border-radius:999px;background:rgba(148,163,184,.12);color:#cbd5e1}.chip.ok{background:rgba(34,197,94,.12);color:#86efac}.chip.off{background:rgba(239,68,68,.12);color:#fca5a5}.actions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:10px}.actions button{padding:9px 5px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);color:white;font-size:11px;font-weight:800}
+    select{width:100%;border:1px solid rgba(255,255,255,.11);border-radius:14px;padding:14px;outline:none;background:#13243c;color:white}.pin-input{text-align:center;font-size:28px;letter-spacing:10px;font-weight:900}.muted{color:var(--muted);font-size:12px}.section-title{font-weight:900;margin:16px 0 8px}.empty{padding:24px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:16px}
+
   </style>
 </head>
 
@@ -771,7 +782,7 @@
 
     <button
       class="admin-btn"
-      onclick="showEnroll()"
+      onclick="openAdminPin()"
       title="ลงทะเบียนพนักงาน"
     >
       ⚙
@@ -975,9 +986,9 @@
       <button
         class="btn btn-secondary"
         style="margin-top:0"
-        onclick="showScanner()"
+        onclick="backFromEnroll()"
       >
-        ← กลับหน้าสแกน
+        ← กลับ
       </button>
 
 
@@ -991,14 +1002,16 @@
       >
 
 
-      <label>
-        ชื่อพนักงาน
-      </label>
+      <label>ชื่อ-สกุล</label>
+      <input id="employeeName" placeholder="ชื่อ - นามสกุล">
 
-      <input
-        id="employeeName"
-        placeholder="ชื่อ - นามสกุล"
-      >
+      <label>ชื่อเล่น</label>
+      <input id="employeeNickname" placeholder="เช่น ปอน">
+
+      <label>บริษัทที่สังกัด</label>
+      <input id="employeeCompany" placeholder="เช่น CJ Logistics">
+
+      <input id="editingEmployeeId" type="hidden">
 
 
       <!-- FRONT -->
@@ -1138,6 +1151,40 @@
 
   </div>
 
+  <!-- ADMIN PIN -->
+  <div id="adminPinModal" class="modal hidden">
+    <div class="modal-card">
+      <div class="admin-title">🔐 Admin Access</div>
+      <div class="muted" style="margin-top:5px">กรอก PIN 6 หลักเพื่อจัดการข้อมูลพนักงาน</div>
+      <input id="adminPinInput" class="pin-input" type="password" inputmode="numeric" maxlength="6" placeholder="••••••" style="margin-top:16px">
+      <button class="btn btn-primary" onclick="verifyAdminPin()">เข้าสู่ระบบ Admin</button>
+      <button class="btn btn-secondary" onclick="closeAdminPin()">ยกเลิก</button>
+      <div id="adminPinStatus" class="enroll-status hidden"></div>
+    </div>
+  </div>
+
+  <!-- ADMIN CONSOLE -->
+  <div id="adminPage" class="hidden admin-page">
+    <div class="admin-head">
+      <div><div class="brand-small">CJL · CNX ADMIN</div><div class="admin-title">Admin Console</div></div>
+      <button class="small-btn danger-small" onclick="adminLogout()">ออกจาก Admin</button>
+    </div>
+    <div class="admin-tabs">
+      <button id="employeeTabBtn" class="tab-btn active" onclick="showAdminEmployees()">👥 พนักงาน</button>
+      <button class="tab-btn" onclick="showShiftComingSoon()">🕒 จัดกะ</button>
+    </div>
+    <div id="employeeAdminPanel" class="panel">
+      <div class="toolbar">
+        <input id="employeeSearch" placeholder="ค้นหา ID / ชื่อ / ชื่อเล่น / บริษัท" oninput="renderEmployeeAdmin()">
+        <button class="small-btn primary-small" onclick="newEmployee()">+ เพิ่ม</button>
+      </div>
+      <label>สถานะ</label>
+      <select id="employeeStatusFilter" onchange="renderEmployeeAdmin()"><option value="ALL">ทั้งหมด</option><option value="Active">Active</option><option value="Inactive">Inactive</option></select>
+      <div id="employeeCount" class="muted" style="margin:12px 0"></div>
+      <div id="employeeAdminList" class="employee-list"></div>
+    </div>
+  </div>
+
 </div>
 
 
@@ -1197,6 +1244,12 @@ let lastMatchedId =
 
 let lastMatchedTime =
   0;
+
+let adminToken = '';
+let adminEmployees = [];
+let adminExpireTimer = null;
+const ADMIN_IDLE_MS = 5 * 60 * 1000;
+
 
 
 /* ==================================================
@@ -2336,219 +2389,36 @@ async function processFaceImage(
 ================================================== */
 
 async function enrollFace() {
-
-  if (!modelsReady) {
-
-    return;
-
-  }
-
-
-  const employeeId =
-    document
-      .getElementById(
-        'employeeId'
-      )
-      .value
-      .trim();
-
-
-  const name =
-    document
-      .getElementById(
-        'employeeName'
-      )
-      .value
-      .trim();
-
-
-  const front =
-    document
-      .getElementById(
-        'frontFile'
-      )
-      .files[0];
-
-
-  const left =
-    document
-      .getElementById(
-        'leftFile'
-      )
-      .files[0];
-
-
-  const right =
-    document
-      .getElementById(
-        'rightFile'
-      )
-      .files[0];
-
-
-  if (
-    !employeeId ||
-    !name
-  ) {
-
-    document
-      .getElementById(
-        'enrollStatus'
-      )
-      .textContent =
-      'กรอก Employee ID และชื่อก่อน';
-
-    return;
-
-  }
-
-
-  if (
-    !front ||
-    !left ||
-    !right
-  ) {
-
-    document
-      .getElementById(
-        'enrollStatus'
-      )
-      .textContent =
-      'กรุณาเลือกรูปให้ครบ 3 มุม';
-
-    return;
-
-  }
-
-
-  const button =
-    document.getElementById(
-      'enrollBtn'
-    );
-
-
-  button.disabled =
-    true;
-
-
-  try {
-
-    document
-      .getElementById(
-        'enrollStatus'
-      )
-      .textContent =
-      'กำลังประมวลผล...';
-
-
-    const descriptorFront =
-      await processFaceImage(
-        front,
-        'frontStatus',
-        'หน้าตรง'
-      );
-
-
-    const descriptorLeft =
-      await processFaceImage(
-        left,
-        'leftStatus',
-        'ด้านซ้าย'
-      );
-
-
-    const descriptorRight =
-      await processFaceImage(
-        right,
-        'rightStatus',
-        'ด้านขวา'
-      );
-
-
-    const response =
-      await fetch(
-        API_URL,
-        {
-
-          method:
-            'POST',
-
-          body:
-            JSON.stringify({
-
-              action:
-                'enroll',
-
-              employeeId:
-                employeeId,
-
-              name:
-                name,
-
-              descriptorFront:
-                descriptorFront,
-
-              descriptorLeft:
-                descriptorLeft,
-
-              descriptorRight:
-                descriptorRight
-
-            })
-
-        }
-      );
-
-
-    const data =
-      await response.json();
-
-
-    if (!data.success) {
-
-      throw new Error(
-        data.message
-      );
-
-    }
-
-
-    document
-      .getElementById(
-        'enrollStatus'
-      )
-      .textContent =
-      '✅ ลงทะเบียน ' +
-      name +
-      ' สำเร็จ';
-
-
-    await loadEmployees();
-
-  } catch (error) {
-
-    console.error(
-      error
-    );
-
-
-    document
-      .getElementById(
-        'enrollStatus'
-      )
-      .textContent =
-      '❌ ' +
-      error.message;
-
-  } finally {
-
-    button.disabled =
-      false;
-
-  }
-
+  if (!adminToken) { openAdminPin(); return; }
+  const employeeId=document.getElementById('employeeId').value.trim();
+  const name=document.getElementById('employeeName').value.trim();
+  const nickname=document.getElementById('employeeNickname').value.trim();
+  const company=document.getElementById('employeeCompany').value.trim();
+  const editingId=document.getElementById('editingEmployeeId').value.trim();
+  const status=document.getElementById('enrollStatus');
+  if(!employeeId||!name||!company){status.textContent='กรุณากรอก Employee ID, ชื่อ-สกุล และบริษัท';return;}
+  const existing=adminEmployees.find(e=>String(e.employeeId)===String(editingId||employeeId));
+  const files={front:document.getElementById('frontFile').files[0],left:document.getElementById('leftFile').files[0],right:document.getElementById('rightFile').files[0]};
+  if(!editingId && (!files.front||!files.left||!files.right)){status.textContent='พนักงานใหม่ต้องมีรูปครบ 3 มุม';return;}
+  status.textContent='กำลังประมวลผลใบหน้า...';
+  try{
+    const getDesc=async(file,label)=>{
+      if(!file)return null;
+      const img=await faceapi.bufferToImage(file);
+      const d=await faceapi.detectSingleFace(img,new faceapi.SsdMobilenetv1Options({minConfidence:.5})).withFaceLandmarks().withFaceDescriptor();
+      if(!d)throw new Error('ไม่พบใบหน้าในรูป '+label);
+      return Array.from(d.descriptor);
+    };
+    const descriptorFront=await getDesc(files.front,'หน้าตรง');
+    const descriptorLeft=await getDesc(files.left,'ด้านซ้าย');
+    const descriptorRight=await getDesc(files.right,'ด้านขวา');
+    const data=await apiPost({action:'saveEmployee',adminToken,originalEmployeeId:editingId,employeeId,name,nickname,company,descriptorFront,descriptorLeft,descriptorRight});
+    if(!data.success)throw new Error(data.message||'บันทึกไม่สำเร็จ');
+    status.textContent='✓ '+data.message;
+    await refreshAdminEmployees(); await loadEmployees();
+    setTimeout(backFromEnroll,700);
+  }catch(error){console.error(error);status.textContent='✕ '+error.message;}
 }
-
 
 /* ==================================================
    PAGE
@@ -2556,7 +2426,10 @@ async function enrollFace() {
 
 function showEnroll() {
 
+  if (!adminToken) { openAdminPin(); return; }
+  resetAdminIdle();
   stopCamera();
+  document.getElementById('adminPage').classList.add('hidden');
 
 
   document
@@ -2617,6 +2490,114 @@ async function showScanner() {
   }
 
 }
+
+
+
+/* ==================================================
+   ADMIN V3
+================================================== */
+function apiPost(payload){
+  return fetch(API_URL,{method:'POST',body:JSON.stringify(payload)}).then(r=>r.json());
+}
+function resetAdminIdle(){
+  if(!adminToken) return;
+  clearTimeout(adminExpireTimer);
+  adminExpireTimer=setTimeout(()=>adminLogout(true),ADMIN_IDLE_MS);
+}
+document.addEventListener('click',()=>{ if(adminToken) resetAdminIdle(); });
+function openAdminPin(){
+  stopCamera();
+  document.getElementById('adminPinInput').value='';
+  document.getElementById('adminPinStatus').classList.add('hidden');
+  document.getElementById('adminPinModal').classList.remove('hidden');
+  setTimeout(()=>document.getElementById('adminPinInput').focus(),80);
+}
+function closeAdminPin(){
+  document.getElementById('adminPinModal').classList.add('hidden');
+  if(!adminToken) showScanner();
+}
+async function verifyAdminPin(){
+  const pin=document.getElementById('adminPinInput').value.trim();
+  const st=document.getElementById('adminPinStatus');
+  st.classList.remove('hidden'); st.textContent='กำลังตรวจสอบ...';
+  const data=await apiPost({action:'adminLogin',pin});
+  if(!data.success){ st.textContent=data.message||'PIN ไม่ถูกต้อง'; return; }
+  adminToken=data.token; closeAdminPin(); resetAdminIdle(); await openAdminConsole();
+}
+async function openAdminConsole(){
+  stopCamera();
+  document.getElementById('scannerPage').classList.add('hidden');
+  document.getElementById('enrollPage').classList.add('hidden');
+  document.getElementById('adminPage').classList.remove('hidden');
+  await refreshAdminEmployees();
+}
+async function adminLogout(expired=false){
+  const token=adminToken; adminToken=''; clearTimeout(adminExpireTimer);
+  if(token) apiPost({action:'adminLogout',adminToken:token}).catch(()=>{});
+  document.getElementById('adminPage').classList.add('hidden');
+  await showScanner();
+  if(expired) updateStatus('Admin หมดเวลา','ออกจากระบบอัตโนมัติหลังไม่มีการใช้งาน 5 นาที','warning');
+}
+async function refreshAdminEmployees(){
+  const data=await apiPost({action:'adminEmployees',adminToken});
+  if(!data.success){ if(data.authError){return adminLogout(true);} throw new Error(data.message||'โหลดพนักงานไม่สำเร็จ'); }
+  adminEmployees=data.employees||[]; renderEmployeeAdmin();
+}
+function renderEmployeeAdmin(){
+  const q=(document.getElementById('employeeSearch').value||'').trim().toLowerCase();
+  const status=document.getElementById('employeeStatusFilter').value;
+  const rows=adminEmployees.filter(e=>{
+    const hay=[e.employeeId,e.name,e.nickname,e.company].join(' ').toLowerCase();
+    return (!q||hay.includes(q)) && (status==='ALL'||e.status===status);
+  });
+  document.getElementById('employeeCount').textContent=`แสดง ${rows.length} / ${adminEmployees.length} คน`;
+  const root=document.getElementById('employeeAdminList');
+  if(!rows.length){root.innerHTML='<div class="empty">ไม่พบข้อมูลพนักงาน</div>';return;}
+  root.innerHTML=rows.map(e=>`<div class="employee-card">
+    <div class="employee-top"><div><div class="employee-name">${esc(e.name||'-')} ${e.nickname?`(${esc(e.nickname)})`:''}</div><div class="employee-meta">${esc(e.employeeId)} · ${esc(e.company||'-')}</div></div><span class="chip ${e.status==='Active'?'ok':'off'}">${esc(e.status)}</span></div>
+    <div class="chips"><span class="chip ${e.hasFront?'ok':''}">Front ${e.hasFront?'✓':'-'}</span><span class="chip ${e.hasLeft?'ok':''}">Left ${e.hasLeft?'✓':'-'}</span><span class="chip ${e.hasRight?'ok':''}">Right ${e.hasRight?'✓':'-'}</span></div>
+    <div class="actions"><button onclick="editEmployee('${jsq(e.employeeId)}')">แก้ไข</button><button onclick="toggleEmployee('${jsq(e.employeeId)}','${e.status==='Active'?'Inactive':'Active'}')">${e.status==='Active'?'Inactive':'Activate'}</button><button onclick="deleteEmployee('${jsq(e.employeeId)}')">ลบ</button></div>
+  </div>`).join('');
+}
+function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function jsq(v){return String(v??'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");}
+function newEmployee(){
+  document.getElementById('editingEmployeeId').value='';
+  ['employeeId','employeeName','employeeNickname','employeeCompany'].forEach(id=>document.getElementById(id).value='');
+  ['frontFile','leftFile','rightFile'].forEach(id=>document.getElementById(id).value='');
+  ['frontPreview','leftPreview','rightPreview'].forEach(id=>document.getElementById(id).classList.add('hidden'));
+  ['frontStatus','leftStatus','rightStatus'].forEach(id=>document.getElementById(id).textContent='ยังไม่ได้เลือกรูป');
+  document.getElementById('enrollBtn').textContent='บันทึกพนักงาน + ใบหน้า 3 มุม';
+  showEnroll();
+}
+function editEmployee(id){
+  const e=adminEmployees.find(x=>String(x.employeeId)===String(id)); if(!e)return;
+  document.getElementById('editingEmployeeId').value=e.employeeId;
+  document.getElementById('employeeId').value=e.employeeId;
+  document.getElementById('employeeName').value=e.name||'';
+  document.getElementById('employeeNickname').value=e.nickname||'';
+  document.getElementById('employeeCompany').value=e.company||'';
+  document.getElementById('enrollBtn').textContent='บันทึกข้อมูล / ใบหน้าใหม่';
+  ['frontStatus','leftStatus','rightStatus'].forEach((id,i)=>document.getElementById(id).textContent=[e.hasFront,e.hasLeft,e.hasRight][i]?'มีข้อมูลเดิม ✓ · เลือกรูปใหม่เพื่อแทนที่':'ยังไม่มีข้อมูล');
+  showEnroll();
+}
+async function toggleEmployee(id,status){
+  if(!confirm(`เปลี่ยน ${id} เป็น ${status}?`))return;
+  const d=await apiPost({action:'setEmployeeStatus',adminToken,employeeId:id,status});
+  alert(d.message||''); if(d.success){await refreshAdminEmployees();await loadEmployees();}
+}
+async function deleteEmployee(id){
+  if(!confirm(`ลบ ${id} จริงหรือไม่?\nแนะนำ Inactive หากเป็นพนักงานลาออก`))return;
+  const pin=prompt('ยืนยันการลบด้วย Admin PIN 6 หลัก'); if(pin===null)return;
+  const d=await apiPost({action:'deleteEmployee',adminToken,pin,employeeId:id});
+  alert(d.message||''); if(d.success){await refreshAdminEmployees();await loadEmployees();}
+}
+function backFromEnroll(){
+  if(adminToken){document.getElementById('enrollPage').classList.add('hidden');document.getElementById('adminPage').classList.remove('hidden');refreshAdminEmployees();}
+  else showScanner();
+}
+function showAdminEmployees(){document.getElementById('employeeTabBtn').classList.add('active');}
+function showShiftComingSoon(){alert('Shift Assignment จะเป็น Phase ถัดไป หลัง Employee Master ผ่านการทดสอบหน้างาน');}
 
 
 /* ==================================================
