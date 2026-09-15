@@ -1171,7 +1171,7 @@
     </div>
     <div class="admin-tabs">
       <button id="employeeTabBtn" class="tab-btn active" onclick="showAdminEmployees()">👥 พนักงาน</button>
-      <button class="tab-btn" onclick="showShiftComingSoon()">🕒 จัดกะ</button>
+      <button id="shiftTabBtn" class="tab-btn" onclick="loadShiftAdmin()">🕒 จัดกะ</button>
     </div>
     <div id="employeeAdminPanel" class="panel">
       <div class="toolbar">
@@ -1182,6 +1182,24 @@
       <select id="employeeStatusFilter" onchange="renderEmployeeAdmin()"><option value="ALL">ทั้งหมด</option><option value="Active">Active</option><option value="Inactive">Inactive</option></select>
       <div id="employeeCount" class="muted" style="margin:12px 0"></div>
       <div id="employeeAdminList" class="employee-list"></div>
+    </div>
+
+    <div id="shiftAdminPanel" class="panel hidden">
+      <div class="section-title" style="margin-top:0">🕒 Shift Assignment · จัดกะพนักงาน</div>
+      <label>วันที่ทำงาน</label>
+      <input id="shiftDate" type="date" onchange="loadRosterForDate()">
+      <label>เลือกกะ</label>
+      <select id="shiftSelect"></select>
+      <label>ค้นหาพนักงาน</label>
+      <input id="shiftEmployeeSearch" placeholder="ID / ชื่อ / ชื่อเล่น / บริษัท" oninput="renderShiftEmployees()">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin:12px 0">
+        <div id="shiftSelectedCount" class="muted">เลือก 0 คน</div>
+        <button class="small-btn primary-small" onclick="selectAllVisibleShiftEmployees()">เลือกทั้งหมดที่เห็น</button>
+      </div>
+      <div id="shiftEmployeeList" class="employee-list"></div>
+      <button class="btn btn-primary" onclick="saveRosterAssignment()">บันทึกการจัดกะ</button>
+      <div class="section-title">Roster ของวันที่เลือก</div>
+      <div id="rosterList" class="employee-list"></div>
     </div>
   </div>
 
@@ -2596,8 +2614,79 @@ function backFromEnroll(){
   if(adminToken){document.getElementById('enrollPage').classList.add('hidden');document.getElementById('adminPage').classList.remove('hidden');refreshAdminEmployees();}
   else showScanner();
 }
-function showAdminEmployees(){document.getElementById('employeeTabBtn').classList.add('active');}
-function showShiftComingSoon(){alert('Shift Assignment จะเป็น Phase ถัดไป หลัง Employee Master ผ่านการทดสอบหน้างาน');}
+
+
+
+let adminShifts=[];
+let adminRoster=[];
+let selectedShiftEmployees=new Set();
+
+async function loadShiftAdmin(){
+  resetAdminIdle();
+  document.getElementById('employeeAdminPanel').classList.add('hidden');
+  document.getElementById('shiftAdminPanel').classList.remove('hidden');
+  document.getElementById('employeeTabBtn').classList.remove('active');
+  document.getElementById('shiftTabBtn').classList.add('active');
+  if(!document.getElementById('shiftDate').value){
+    const now=new Date(), local=new Date(now.getTime()-now.getTimezoneOffset()*60000);
+    document.getElementById('shiftDate').value=local.toISOString().slice(0,10);
+  }
+  const d=await apiPost({action:'shifts',adminToken});
+  if(!d.success){if(d.authError)return adminLogout(true);alert(d.message);return;}
+  adminShifts=d.shifts||[];
+  document.getElementById('shiftSelect').innerHTML=adminShifts.map(s=>`<option value="${esc(s.shiftId)}">${esc(s.shiftId)} · ${esc(s.startTime)}–${esc(s.endTime)} · ${esc(s.jobType)}</option>`).join('');
+  selectedShiftEmployees.clear();
+  renderShiftEmployees();
+  await loadRosterForDate();
+}
+function showAdminEmployees(){
+  document.getElementById('shiftAdminPanel').classList.add('hidden');
+  document.getElementById('employeeAdminPanel').classList.remove('hidden');
+  document.getElementById('shiftTabBtn').classList.remove('active');
+  document.getElementById('employeeTabBtn').classList.add('active');
+}
+function renderShiftEmployees(){
+  const q=(document.getElementById('shiftEmployeeSearch').value||'').toLowerCase().trim();
+  const rows=adminEmployees.filter(e=>e.status==='Active' && (!q||[e.employeeId,e.name,e.nickname,e.company].join(' ').toLowerCase().includes(q)));
+  document.getElementById('shiftEmployeeList').innerHTML=rows.map(e=>`<label class="employee-card" style="display:flex;gap:12px;align-items:center;margin:0">
+    <input type="checkbox" style="width:22px;height:22px" ${selectedShiftEmployees.has(e.employeeId)?'checked':''} onchange="toggleShiftEmployee('${jsq(e.employeeId)}',this.checked)">
+    <div><div class="employee-name">${esc(e.name)} ${e.nickname?`(${esc(e.nickname)})`:''}</div><div class="employee-meta">${esc(e.employeeId)} · ${esc(e.company||'-')}</div></div>
+  </label>`).join('')||'<div class="empty">ไม่พบพนักงาน Active</div>';
+  updateShiftSelectedCount();
+}
+function toggleShiftEmployee(id,checked){checked?selectedShiftEmployees.add(id):selectedShiftEmployees.delete(id);updateShiftSelectedCount();}
+function updateShiftSelectedCount(){document.getElementById('shiftSelectedCount').textContent=`เลือก ${selectedShiftEmployees.size} คน`;}
+function selectAllVisibleShiftEmployees(){
+  const q=(document.getElementById('shiftEmployeeSearch').value||'').toLowerCase().trim();
+  adminEmployees.filter(e=>e.status==='Active'&&(!q||[e.employeeId,e.name,e.nickname,e.company].join(' ').toLowerCase().includes(q))).forEach(e=>selectedShiftEmployees.add(e.employeeId));
+  renderShiftEmployees();
+}
+async function saveRosterAssignment(){
+  const workDate=document.getElementById('shiftDate').value,shiftId=document.getElementById('shiftSelect').value,employeeIds=[...selectedShiftEmployees];
+  if(!workDate||!shiftId||!employeeIds.length){alert('เลือกวันที่ กะ และพนักงานก่อน');return;}
+  const d=await apiPost({action:'saveRoster',adminToken,workDate,shiftId,employeeIds});
+  alert(d.message||'');if(d.success){selectedShiftEmployees.clear();renderShiftEmployees();await loadRosterForDate();}
+}
+async function loadRosterForDate(){
+  const workDate=document.getElementById('shiftDate').value;if(!workDate)return;
+  const d=await apiPost({action:'roster',adminToken,workDate});
+  if(!d.success){if(d.authError)return adminLogout(true);alert(d.message);return;}
+  adminRoster=d.roster||[];renderRoster();
+}
+function renderRoster(){
+  const root=document.getElementById('rosterList');
+  if(!adminRoster.length){root.innerHTML='<div class="empty">วันนี้ยังไม่มีการจัดกะ</div>';return;}
+  root.innerHTML=adminRoster.map(r=>`<div class="employee-card">
+    <div class="employee-top"><div><div class="employee-name">${esc(r.employee?.name||r.employeeId)}</div><div class="employee-meta">${esc(r.employeeId)} · ${esc(r.employee?.company||'-')}</div></div><span class="chip ok">${esc(r.shiftId)}</span></div>
+    <div class="chips"><span class="chip">${esc(r.shift?.startTime||'-')}–${esc(r.shift?.endTime||'-')}</span><span class="chip">${esc(r.shift?.jobType||'-')}</span></div>
+    <div class="actions" style="grid-template-columns:1fr"><button onclick="removeRoster('${jsq(r.employeeId)}')">นำออกจากกะวันนี้</button></div>
+  </div>`).join('');
+}
+async function removeRoster(id){
+  if(!confirm(`นำ ${id} ออกจากกะของวันที่เลือก?`))return;
+  const d=await apiPost({action:'deleteRoster',adminToken,workDate:document.getElementById('shiftDate').value,employeeId:id});
+  alert(d.message||'');if(d.success)await loadRosterForDate();
+}
 
 
 /* ==================================================
